@@ -1,10 +1,8 @@
 {
- "versionCode": 37,
- "versionName": "7.1",
+ "versionCode": 38,
+ "versionName": "7.2",
  "notes": [
-  "Geen dubbele 'Overig' meer: dubbele categorieën worden samengevoegd",
-  "Alle categorieën zichtbaar in de taart, geen 'Overige categorieën' meer",
-  "Transacties zonder bestaande categorie staan onder 'Nog niet ingedeeld' en in Indelen"
+  "Indelen werkt weer voor alle transacties met dezelfde naam"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=37"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=38"
 }

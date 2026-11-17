@@ -2185,7 +2185,8 @@ function bankDisconnect(id){openSheet(`<h3>Bank ontkoppelen?</h3><p class="s">St
   <div class="actions"><button class="ghost" onclick="closeSheet()">Annuleren</button><button class="btn" style="background:var(--bad)" onclick="doBankDisconnect('${esc(id)}')">Ontkoppelen</button></div>`)}
 async function doBankDisconnect(id){closeSheet();try{await bankCall('disconnect',{id});BANK=null;renderSettings();toast('Bank ontkoppeld')}catch(e){toast(e.message)}}
 // nog indelen
-function reviewList(){const since=ymd(new Date(Date.now()-120*864e5));return allTx().filter(t=>(t.review||(t.type==='out'&&!t.fixedId&&!(Array.isArray(t.splits)&&t.splits.length)&&t.cat&&!S.cats.some(c=>c.id===t.cat)))&&t.date>=since).sort((a,b)=>b.date.localeCompare(a.date))}
+function isPending(t){return !!(t.review||(t.type==='out'&&!t.fixedId&&!(Array.isArray(t.splits)&&t.splits.length)&&t.cat&&!S.cats.some(c=>c.id===t.cat)))}
+function reviewList(){const since=ymd(new Date(Date.now()-120*864e5));return allTx().filter(t=>isPending(t)&&t.date>=since).sort((a,b)=>b.date.localeCompare(a.date))}
 function renderReviewBanner(){const el=$('reviewBanner');if(!el)return;const r=reviewList();
   el.innerHTML=r.length?`<div class="card" style="margin-top:12px;display:flex;align-items:center;gap:12px;border-color:var(--warn)"><div class="ico">🏷️</div><div class="grow"><div class="t">${r.length} transactie${r.length===1?'':'s'} nog indelen</div><div class="s">Van de bank, zonder categorie</div></div><button class="btn" style="padding:8px 12px" onclick="openReview()">Indelen</button></div>`:''}
 function openReview(){const r=reviewList();if(!r.length){closeSheet();toast('Alles is ingedeeld 🎉');return}
@@ -2202,7 +2203,7 @@ function openReview(){const r=reviewList();if(!r.length){closeSheet();toast('All
     <div class="actions"><button class="ghost" onclick="closeSheet()">Klaar</button></div>`)}
 function setReviewCat(id,v){if(!v)return;const f=findTx(id);if(!f)return;const n=normName(f.t.desc),ty=f.t.type;S.rules=S.rules||{};if(n)S.rules[ty==='in'?'in:'+n:n]=ty==='in'?v.slice(2):v;const keys=new Set(['main']);
   const apply=t=>{delete t.review;if(v.startsWith('f:')){t.fixedId=v.slice(2);t.cat=null}else t.cat=v.slice(2)};
-  for(const m in TX)TX[m].forEach(t=>{if(t.id===id||(t.review&&t.type===ty&&normName(t.desc)===n)){apply(t);keys.add('tx-'+m)}});
+  for(const m in TX)TX[m].forEach(t=>{if(t.id===id||(isPending(t)&&t.type===ty&&normName(t.desc)===n)){apply(t);keys.add('tx-'+m)}});
   mark(...keys);setTimeout(()=>{if($('sheetBg').classList.contains('open'))openReview()},50)}
 
 /* ---------- categorieën beheren ---------- */
@@ -2362,7 +2363,7 @@ function renderInvest(){renderDegiro();const inv=S.assets.filter(a=>a.type==='be
     :'<div class="empty">Nog geen beleggingen. Voeg je beleggingsrekening toe.</div>'}
 
 /* ---------- updates ---------- */
-const APP_VN='7.1';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='7.2';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
