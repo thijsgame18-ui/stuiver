@@ -1,8 +1,8 @@
 {
- "versionCode": 40,
- "versionName": "7.4",
+ "versionCode": 41,
+ "versionName": "7.5",
  "notes": [
-  "De taart staat altijd op Periode, en Periode staat vooraan"
+  "Rekeningen en categorieën kunnen niet meer verdwijnen als je op twee apparaten tegelijk werkt"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=40"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=41"
 }

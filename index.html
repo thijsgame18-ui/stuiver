@@ -710,6 +710,18 @@ function mark(...keys){keys.forEach(k=>dirty[k]=true);saveLocal();saveDirty();re
 const markMain=()=>mark('main');
 const markMonth=m=>mark('tx-'+m);
 function refFor(k){return k==='samen'?db.doc('samen/main'):db.collection('data/users/'+me).doc(k)}
+const MAIN_COLS=['cats','assets','fixed','goals','trips'];
+let LASTMAIN=(()=>{try{return JSON.parse(localStorage.getItem('stuiver-lastmain')||'{}')}catch(e){return{}}})();
+function rememberMain(d){const o={};MAIN_COLS.forEach(c=>{if(Array.isArray(d&&d[c]))o[c]=d[c].map(x=>x&&x.id).filter(Boolean)});LASTMAIN=o;try{localStorage.setItem('stuiver-lastmain',JSON.stringify(o))}catch(e){}}
+function mergeMain(local,srv){if(!srv||typeof srv!=='object')return local;const gone=Object.assign({},srv.gone||{},local.gone||{});const now=today();
+  MAIN_COLS.forEach(c=>{const L=Array.isArray(local[c])?local[c]:null,R=Array.isArray(srv[c])?srv[c]:null;if(!L&&!R)return;
+    const lids=new Set((L||[]).map(x=>x&&x.id));(LASTMAIN[c]||[]).forEach(id=>{if(!lids.has(id)&&!gone[id])gone[id]=now});
+    const out=(L||[]).filter(x=>!(x&&x.id&&srv.gone&&srv.gone[x.id]));
+    (R||[]).forEach(x=>{if(x&&x.id&&!lids.has(x.id)&&!gone[x.id])out.push(x)});local[c]=out});
+  if(srv.rules&&typeof srv.rules==='object'){local.rules=local.rules||{};Object.keys(srv.rules).forEach(k=>{if(!(k in local.rules))local.rules[k]=srv.rules[k]})}
+  ['catsV2','horecaV1','belastingV1','rulesResetV1','impWipeV1','periodV1'].forEach(f=>{if(srv[f])local[f]=true});
+  if(srv.degiro&&(!local.degiro||(srv.degiro.upd||'')>(local.degiro.upd||'')))local.degiro=srv.degiro;
+  const keys=Object.keys(gone).sort((a,b)=>String(gone[b]).localeCompare(String(gone[a]))).slice(0,400);local.gone={};keys.forEach(k=>local.gone[k]=gone[k]);return local}
 function bodyFor(k){if(k==='main')return clone(S);if(k==='samen')return clone(SAMEN);return{items:TX[k.slice(3)]||[]}}
 async function flush(){
   if(!SB.hid&&(!db||!me)||!canWrite)return;
@@ -1652,7 +1664,7 @@ function checkEpoch(ep){ep=+ep||0;if(!SB.hid||ep<=localEp()){SB.epoch=Math.max(S
 async function applyDocAny(k,data){if(k==='_vault'){onVaultDoc(data);return}if(data&&k.startsWith('tx-')&&data.ep!=null)checkEpoch(data.ep);if(!data||dirty[k]||writing[k])return;
   if(data.enc){if(!VAULT.key){VAULT.pending=true;return}try{data=await vDec(data)}catch(e){console.warn('ontsleutelen mislukt',k);return}}applyDoc(k,data)}
 function applyDoc(k,data){if(!data||dirty[k]||writing[k])return;
-  if(k==='main'){S=Object.assign(defaults(),clone(data));S.settings=Object.assign(defaults().settings,S.settings||{});migrateSettings()}
+  if(k==='main'){S=Object.assign(defaults(),clone(data));S.settings=Object.assign(defaults().settings,S.settings||{});migrateSettings();rememberMain(S)}
   else if(k==='samen')SAMEN=Object.assign(defSamen(),clone(data));
   else if(k.startsWith('tx-')){const m=k.slice(3),old=new Set((TX[m]||[]).map(t=>t.id));TX[m]=clone(data.items||[]).filter(t=>!DELETED.has(m+':'+t.id));
     if(SB.ready)TX[m].filter(t=>!old.has(t.id)&&t.by&&t.by!==SB.uid).slice(0,5).forEach(t=>notifyPartner(t))}}
@@ -1665,10 +1677,15 @@ async function sbWrite(k){
     const row=row0&&row0.data&&row0.data.enc?{data:await vDec(row0.data)}:row0;
     if(row&&row.data&&Array.isArray(row.data.items)){const mine=new Set((TX[m]||[]).map(t=>t.id));const add=row.data.items.filter(t=>!mine.has(t.id)&&!DELETED.has(m+':'+t.id));
       if(add.length){TX[m]=(TX[m]||[]).concat(add);saveLocal();render()}data={items:TX[m]||[]}}}
+  if(k==='main'){const {data:row0,error}=await SB.c.from('docs').select('data').eq('household_id',SB.hid).eq('key','main').maybeSingle();if(error)throw sbErr(error);
+    let srv=null;try{srv=row0&&row0.data?(row0.data.enc?await vDec(row0.data):row0.data):null}catch(e){srv=null}
+    if(srv){const before=JSON.stringify(MAIN_COLS.map(c=>(S[c]||[]).length));S=mergeMain(S,srv);data=clone(S);if(JSON.stringify(MAIN_COLS.map(c=>(S[c]||[]).length))!==before){saveLocal();render()}}}
+  const plain=k==='main'?data:null;
   if(VAULT.key)data=await vEnc(data);
   if(k.startsWith('tx-'))data.ep=SB.epoch||0;
   const {error}=await SB.c.from('docs').upsert({household_id:SB.hid,key:k,data,updated_by:SB.uid,updated_at:new Date().toISOString()},{onConflict:'household_id,key'});
   if(error)throw sbErr(error);
+  if(plain)rememberMain(plain);
 }
 async function sbPull(first){
   const {data,error}=await SB.c.from('docs').select('key,data').eq('household_id',SB.hid);
@@ -2362,7 +2379,7 @@ function renderInvest(){renderDegiro();const inv=S.assets.filter(a=>a.type==='be
     :'<div class="empty">Nog geen beleggingen. Voeg je beleggingsrekening toe.</div>'}
 
 /* ---------- updates ---------- */
-const APP_VN='7.4';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='7.5';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
