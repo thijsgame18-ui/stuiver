@@ -1,8 +1,10 @@
 {
- "versionCode": 42,
- "versionName": "7.6",
+ "versionCode": 43,
+ "versionName": "7.7",
  "notes": [
-  "Blok 'Let op' weggehaald van het homescherm"
+  "Nieuw homescherm: grote ring met waar je geld heen gaat, bovenaan",
+  "Rekeningen als kaarten die je opzij schuift, DeGiro erbij",
+  "Blok 'Nog vrij' van het homescherm gehaald"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=42"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=43"
 }

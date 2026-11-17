@@ -112,6 +112,18 @@ th{color:var(--muted);font-weight:500}
 :root{--c1:#2a78d6;--c2:#eb6834;--c3:#1baf7a;--c4:#eda100;--c5:#e87ba4;--c6:#008300;--c7:#6250d6;--c8:#e34948;--cfix:#8a7f76}
 [data-dark=true]{--c1:#3987e5;--c2:#d95926;--c3:#199e70;--c4:#c98500;--c5:#d55181;--c6:#0ca30c;--c7:#9085e9;--c8:#e66767;--cfix:#a69a8f}
 .dash-hero{display:flex;align-items:center;gap:14px}
+
+.ring-hero{position:relative;overflow:hidden;padding:18px 18px 14px}
+.rh-glow{position:absolute;inset:0;pointer-events:none;background:radial-gradient(260px 220px at 15% 0%,color-mix(in srgb,#5e5cff 28%,transparent),transparent 70%),radial-gradient(240px 220px at 100% 45%,color-mix(in srgb,#00d6aa 20%,transparent),transparent 70%)}
+.ring-hero>*:not(.rh-glow){position:relative}
+.rh-title{font-family:Fraunces,serif;font-size:20px;margin:0 0 10px}
+.ring-hero .where svg{width:230px;height:230px}
+.ring-hero .lg .li{padding:7px 4px;font-size:14px}
+.lg .mb{flex:0 0 26%;height:6px;border-radius:99px;background:color-mix(in srgb,var(--line) 70%,transparent);overflow:hidden}.lg .mb b{display:block;height:100%;border-radius:99px}
+.acc-row{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 8px;margin:0 -2px;scrollbar-width:none}.acc-row::-webkit-scrollbar{display:none}
+.acc-card{flex:0 0 158px;min-height:100px;border-radius:20px;padding:14px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;border:1px solid color-mix(in srgb,var(--ac) 45%,transparent);background:linear-gradient(135deg,color-mix(in srgb,var(--ac) 42%,transparent),color-mix(in srgb,var(--ac) 10%,transparent));color:var(--ink)}
+.acc-card .n{font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.acc-card .v{font-family:Fraunces,serif;font-size:21px;font-weight:600}.acc-card .s2{font-size:11px;opacity:.7}
+.acc-card.add{--ac:var(--muted);border-style:dashed;background:none;align-items:center;justify-content:center;color:var(--muted);font-weight:600}
 .hm-head{padding:20px 18px 18px}
 .hm-name{font-family:Fraunces,serif;font-size:30px;line-height:1.1;margin:2px 0 4px}
 .hm-chips{display:flex;gap:8px;overflow-x:auto;margin:14px -4px 12px;padding:0 4px;scrollbar-width:none}.hm-chips::-webkit-scrollbar{display:none}
@@ -275,8 +287,11 @@ th{color:var(--muted);font-weight:500}
       <div class="hm-chips" id="hmChips"></div>
       <div class="hm-io" id="hmIO"></div>
     </div>
+    <div class="card ring-hero"><div class="rh-glow" aria-hidden="true"></div><h2 class="rh-title">Waar gaat je geld heen</h2><div id="whereCard"></div></div>
+    <div class="sechead"><h2>Rekeningen</h2><span><button class="ghost" id="dashSync" onclick="bankSyncNow()" style="display:none">🔄 Ophalen</button></span></div>
+    <div class="acc-row" id="hmAccts"></div>
     <div class="hm-tiles" id="hmTiles"></div>
-    <div class="card hm-free">
+    <div class="card hm-free" style="display:none">
       <div class="lbl">Nog vrij deze periode</div>
       <div class="big" id="freeLeft">€ 0</div>
       <div class="row"><span id="daysLeft" class="pill"></span><span id="perDay"></span></div>
@@ -290,18 +305,12 @@ th{color:var(--muted);font-weight:500}
     <div id="reportBanner"></div>
     <div id="reviewBanner"></div>
 
-    <div class="sechead"><h2>Saldo van je rekeningen</h2><span><button class="ghost" id="dashSync" onclick="bankSyncNow()" style="display:none">🔄 Ophalen</button></span></div>
-    <div class="card" id="hmAccts"></div>
     <div class="accts" id="accts" style="display:none"></div>
 
     <div id="hmTopLbl" style="display:none"></div><div id="hmTop" style="display:none"></div>
     <div class="kpis" id="flowCard" style="display:none"></div>
 
     <div class="dash2">
-      <div>
-        <div class="sechead"><h2>Uitgaven per categorie</h2></div>
-        <div class="card" id="whereCard"></div>
-      </div>
       <div>
         <div class="sechead"><h2>Uitgavenverloop</h2></div>
         <div class="card" id="paceCard"></div>
@@ -912,10 +921,12 @@ function renderHome(){if(!$('hmIO'))return;const P=periodAt(0),Pv=periodAt(-1);c
   $('hmPosts').innerHTML=HMPOSTS?(pend.length?pend.map(x=>`<div class="item"><div class="ico">${x.f.icon||'🧾'}</div><div class="grow"><div class="t">${esc(x.f.name)}</div><div class="s">${dShort(x.d)}</div></div><div class="amt out">−${fmt(perMonth(x.f)).replace('−','')}</div></div>`).join('')+`<div class="kv" style="margin-top:6px"><span>Nog te betalen</span><span class="amt">${fmt(pendSum)}</span></div>`:(FCx.fixedLeft>0?`<div class="note">Volgens je vaste lasten moet er nog ongeveer ${fmt0(FCx.fixedLeft)} af deze periode. Welke precies kan Stuiver niet zien, omdat die betalingen niet aan een vaste last gekoppeld zijn.</div>`:'<div class="note">Alle vaste lasten van deze periode zijn al betaald.</div>')):'';
   // rekeningen
   const FC=freeCalc(P,a),incLeft=Math.max(0,FC.expInc-a.inc);let tot=0;
-  const rows=accs.map(x=>{const v=acctBalance(x);tot+=v;let sub='';
-    if(x.type==='betaal'){const end=v+incLeft-FC.fixedLeft;sub=`eind van deze periode (${dShort(new Date(+P.e-864e5))}) ≈ ${fmt0(end)}`}else sub=x.cat||x.match?'bijgehouden vanaf '+(x.updated?dShort(pd(x.updated)):'–'):'saldo van '+(x.updated?dShort(pd(x.updated)):'–');
-    return `<div class="item tap" onclick="openAsset('${x.id}')"><div class="grow"><div class="t">${esc(x.name)}</div><div class="s">${sub}</div></div><div class="amt">${fmt0(v)}</div></div>`}).join('');
-  $('hmAccts').innerHTML=(rows||'<div class="empty">Nog geen rekeningen.</div>')+(accs.length>1?`<div class="kv" style="padding-top:10px"><span>Totaal</span><span class="amt">${fmt0(tot)}</span></div>`:'')+`<div style="text-align:center;margin-top:8px"><button class="ghost" onclick="openAsset(null,'spaar')">+ Rekening toevoegen</button></div>`;
+  const ACC=['#5e5cff','#00d6aa','#ff6b81','#ffb547','#9ad8ff','#c084fc','#34d399'];let ai=0;
+  const all=[...accs,...S.assets.filter(x=>x.type==='beleg')];
+  const rows=all.map(x=>{const v=x.type==='beleg'?(+x.amount||0):acctBalance(x);tot+=v;const col=x.type==='betaal'?'#5e5cff':x.type==='beleg'?'#ffb547':ACC[1+(ai++)%(ACC.length-1)];
+    const sub=x.type==='betaal'?'betaalrekening':x.type==='beleg'?'beleggen':'sparen';
+    return `<div class="acc-card" style="--ac:${col}" onclick="openAsset('${x.id}')"><div class="n">${esc(x.name)}</div><div><div class="v amt">${fmt0(v)}</div><div class="s2">${sub}</div></div></div>`}).join('');
+  $('hmAccts').innerHTML=rows+`<div class="acc-card add" onclick="openAsset(null,'spaar')">+ Rekening</div>`;
   // top uitgaven
   const by={};a.tx.filter(t=>t.type==='out').forEach(t=>{if(t.fixedId){const f=S.fixed.find(f=>f.id===t.fixedId);const k=t.cat&&catKind(t.cat)==='uit'?t.cat:'fx:'+t.fixedId;by[k]=by[k]||{v:0,name:f?f.name:'Vaste last',icon:f?.icon||'🧾',k};by[k].v+=t.amount;return}
     catAmounts(t).forEach(x=>{if(catKind(x.cat)!=='uit')return;const c=S.cats.find(c=>c.id===x.cat);by[x.cat]=by[x.cat]||{v:0,name:c?c.name:'Overig',icon:c?.icon||'📦',k:x.cat};by[x.cat].v+=+x.amount||0})});
@@ -1962,7 +1973,7 @@ function renderWhere(){const tx=whereTx(),R=whereRange();
     return a1>a0?`<path class="seg-slice" data-i="${i}" d="${arc(66,66,52,a0,a1)}" fill="none" stroke="${w.col}" stroke-width="20"/>`:''}).join('');
   $('whereCard').innerHTML=tabs+`<div class="where"><svg viewBox="0 0 132 132" role="img" aria-label="Uitgaven per categorie">${segs}
       <text x="66" y="62" text-anchor="middle" style="font:600 18px Fraunces,serif;fill:var(--ink)" class="amt">${fmt0(tot)}</text><text x="66" y="80" text-anchor="middle" style="font-size:11px;fill:var(--muted)">${{uit:'uitgegeven',spaar:'gespaard',beleg:'belegd',in:'ontvangen'}[whereTab]}</text></svg>
-    <div class="lg">${WHERE.slice(0,WHEREALL?99:8).map((w,i)=>`<div class="li" data-i="${i}" onclick="CTX.rng=whereRange();openCatTx('${w.k}','rng')"><i style="background:${w.col}"></i><span class="n">${w.icon} ${esc(w.name)}</span><span class="p">${Math.round(w.p*100)}%</span><span class="a">${fmt0(w.v)}</span></div>`).join('')}
+    <div class="lg">${WHERE.slice(0,WHEREALL?99:8).map((w,i)=>`<div class="li" data-i="${i}" onclick="CTX.rng=whereRange();openCatTx('${w.k}','rng')"><i style="background:${w.col}"></i><span class="n">${w.icon} ${esc(w.name)}</span><span class="mb"><b style="width:${Math.max(3,w.v/WHERE[0].v*100)}%;background:${w.col}"></b></span><span class="p">${Math.round(w.p*100)}%</span><span class="a">${fmt0(w.v)}</span></div>`).join('')}
     ${WHERE.length>8?`<button class="ghost" style="padding:6px 0" onclick="WHEREALL=!WHEREALL;renderWhere()">${WHEREALL?'Minder tonen ▴':'Alle '+WHERE.length+' categorieën tonen ▾'}</button>`:''}</div></div>`;
   {const rv=tx.filter(t=>t.review&&t.type==='out');if(rv.length&&whereTab==='uit')$('whereCard').insertAdjacentHTML('beforeend',`<div class="note tap" style="margin-top:10px;cursor:pointer" onclick="openReview()">⚠️ ${rv.length} transactie${rv.length===1?'':'s'} (${fmt0(rv.reduce((a,t)=>a+t.amount,0))}) in ${R.label} ${rv.length===1?'is':'zijn'} nog niet ingedeeld en ${rv.length===1?'staat':'staan'} nu onder ${esc((S.cats.find(c=>c.id===rv[0].cat)||{name:'Overig'}).name)}. Tik om in te delen.</div>`)}
   const svg=$('whereCard').querySelector('svg');
@@ -2376,7 +2387,7 @@ function renderInvest(){renderDegiro();const inv=S.assets.filter(a=>a.type==='be
     :'<div class="empty">Nog geen beleggingen. Voeg je beleggingsrekening toe.</div>'}
 
 /* ---------- updates ---------- */
-const APP_VN='7.6';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='7.7';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
