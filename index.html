@@ -1926,15 +1926,14 @@ function whereRange(){const n=new Date();if(WR.m==='p'){const P=periodAt(WR.off)
   const d=new Date(n.getFullYear(),n.getMonth()+WR.off,1);return{s:d,e:new Date(d.getFullYear(),d.getMonth()+1,1),label:MND[d.getMonth()]+' '+d.getFullYear()}}
 function whereTx(){const R=whereRange();return allTx().filter(t=>{const d=pd(t.date);return d>=R.s&&d<R.e})}
 function setWhereTab(t){whereTab=t;renderWhere()}
-function setWR(m,off){WR={m,off};try{localStorage.setItem('stuiver-wr',m)}catch(e){}renderWhere()}
-try{WR.m=localStorage.getItem('stuiver-wr')||'p'}catch(e){WR.m='p'}
+function setWR(m,off){WR={m,off};renderWhere()}
 function renderWhere(){const tx=whereTx(),R=whereRange();
   const by={};
   if(whereTab==='in'){tx.filter(t=>t.type==='in').forEach(t=>{if(t.cat&&catKind(t.cat)==='in'){by[t.cat]=(by[t.cat]||0)+t.amount;return}const w=whoOf(t);const k=w?'_in_'+w:'_in_'+(normName(t.desc)||'overig');by[k]=(by[k]||0)+t.amount})}
   else tx.filter(t=>t.type==='out').forEach(t=>{if(t.fixedId){if(whereTab==='uit')by._vast=(by._vast||0)+t.amount;return}
     catAmounts(t).forEach(x=>{const ok=x.cat&&S.cats.some(c=>c.id===x.cat);if(!ok){if(whereTab==='uit')by._none=(by._none||0)+(+x.amount||0);return}if(catKind(x.cat)!==whereTab)return;by[x.cat]=(by[x.cat]||0)+(+x.amount||0)})});
   const nav=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap">
-     <div class="tabs" style="margin:0;flex:0 0 auto">${[['m','Maand'],['p','Periode'],['y','Jaar']].map(([k,l])=>`<button class="${WR.m===k?'on':''}" onclick="setWR('${k}',0)">${l}</button>`).join('')}</div>
+     <div class="tabs" style="margin:0;flex:0 0 auto">${[['p','Periode'],['m','Maand'],['y','Jaar']].map(([k,l])=>`<button class="${WR.m===k?'on':''}" onclick="setWR('${k}',0)">${l}</button>`).join('')}</div>
      <div style="display:flex;align-items:center;gap:6px"><button class="outline" style="min-height:0;padding:6px 12px" onclick="setWR(WR.m,WR.off-1)">‹</button><b style="min-width:120px;text-align:center;text-transform:capitalize">${R.label}</b><button class="outline" style="min-height:0;padding:6px 12px;${WR.off>=0?'visibility:hidden':''}" onclick="setWR(WR.m,WR.off+1)">›</button></div></div>`;
   const tabs=nav+`<div class="tabs">${[['uit','Uitgaven'],['spaar','Sparen'],['beleg','Beleggen'],['in','Inkomsten']].map(([k,l])=>`<button class="${whereTab===k?'on':''}" onclick="setWhereTab('${k}')">${l}</button>`).join('')}</div>`;
   const tot=Object.values(by).reduce((a,b)=>a+b,0);
@@ -2363,7 +2362,7 @@ function renderInvest(){renderDegiro();const inv=S.assets.filter(a=>a.type==='be
     :'<div class="empty">Nog geen beleggingen. Voeg je beleggingsrekening toe.</div>'}
 
 /* ---------- updates ---------- */
-const APP_VN='7.3';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='7.4';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
