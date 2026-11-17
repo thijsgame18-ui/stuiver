@@ -1,0 +1,9 @@
+{
+ "versionCode": 34,
+ "versionName": "6.8",
+ "notes": [
+  "Update-melding: nieuwe versies installeer je voortaan vanuit de app",
+  "De computerversie staat online"
+ ],
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=34"
+}
