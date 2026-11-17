@@ -1,8 +1,8 @@
 {
- "versionCode": 41,
- "versionName": "7.5",
+ "versionCode": 42,
+ "versionName": "7.6",
  "notes": [
-  "Rekeningen en categorieën kunnen niet meer verdwijnen als je op twee apparaten tegelijk werkt"
+  "Blok 'Let op' weggehaald van het homescherm"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=41"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=42"
 }
