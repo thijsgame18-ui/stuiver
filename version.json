@@ -1,9 +1,8 @@
 {
- "versionCode": 44,
- "versionName": "7.8",
+ "versionCode": 45,
+ "versionName": "7.9",
  "notes": [
-  "Homescherm compacter: de ring staat bovenaan, inkomsten en uitgaven eronder",
-  "Op de computer staan de ring en de lijst naast elkaar"
+  "Bijwerken gaat voortaan in één tik, zonder extra vraag van Android (Android 12 en nieuwer)"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=44"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=45"
 }

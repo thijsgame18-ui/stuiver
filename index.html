@@ -2405,7 +2405,7 @@ function renderInvest(){renderDegiro();const inv=S.assets.filter(a=>a.type==='be
     :'<div class="empty">Nog geen beleggingen. Voeg je beleggingsrekening toe.</div>'}
 
 /* ---------- updates ---------- */
-const APP_VN='7.8';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='7.9';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
@@ -2419,7 +2419,7 @@ function renderUpdate(st,pct){const el=$('updateBanner');if(!el)return;if(!UPD){
     ${st==='download'?`<div class="bar" style="margin-top:12px"><i style="width:${pct||2}%;background:var(--good)"></i></div><div class="s" style="margin-top:6px">Downloaden… ${pct||0}%</div>`:''}
     ${st==='perm'?`<div class="note" style="margin-top:10px">Zet in het scherm dat opende <b>Toestaan van deze bron</b> aan voor Stuiver en ga terug. Daarna gaat de update vanzelf verder.</div>`:''}
     ${st==='noperm'?`<div class="note" style="margin-top:10px">Zonder die toestemming kan Stuiver zichzelf niet bijwerken. Probeer het opnieuw en zet het schuifje aan.</div>`:''}
-    ${st==='install'?`<div class="note" style="margin-top:10px">Tik in het scherm van Android op <b>Bijwerken</b>. Je gegevens blijven gewoon staan.</div>`:''}
+    ${st==='install'?`<div class="note" style="margin-top:10px">Bezig met installeren… Stuiver sluit zo even af. Daarna krijg je een melding dat hij is bijgewerkt. Vraagt Android nog iets, tik dan op <b>Bijwerken</b>.</div>`:''}
     ${st==='error'?`<div class="note" style="margin-top:10px">Het downloaden lukte niet. Controleer je internet en probeer het opnieuw.</div>`:''}
     <div class="btnrow" style="margin:12px 0 0"><button class="btn" ${busy?'disabled':''} onclick="doUpdate()">${busy?'Bezig…':'Nu bijwerken'}</button></div></div>`}
 function doUpdate(){if(!UPD||!UPD.apk)return;try{Android.installUpdate(UPD.apk)}catch(e){location.href=UPD.apk}}
