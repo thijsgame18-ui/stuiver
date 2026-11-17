@@ -125,6 +125,24 @@ th{color:var(--muted);font-weight:500}
 .acc-card .n{font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.acc-card .v{font-family:Fraunces,serif;font-size:21px;font-weight:600}.acc-card .s2{font-size:11px;opacity:.7}
 .acc-card.add{--ac:var(--muted);border-style:dashed;background:none;align-items:center;justify-content:center;color:var(--muted);font-weight:600}
 .hm-head{padding:20px 18px 18px}
+/* compact home */
+#v-home .card{padding:14px 16px}
+#v-home .sechead{margin:14px 0 8px}#v-home .sechead h2{font-size:18px}
+.ring-hero{padding:14px 16px 10px!important}
+.rh-title{font-size:18px;margin:0 0 6px}
+#whereCard .tabs{margin:0 0 6px}#whereCard .tabs button{padding:5px 11px;font-size:13px;min-height:0}
+#whereCard .outline{min-height:0}
+.ring-hero .where svg{width:190px;height:190px}
+.ring-hero .lg .li{padding:4px 4px;font-size:13px}
+@media(min-width:760px){.ring-hero .where{flex-direction:row;align-items:center;gap:28px}.ring-hero .where svg{width:220px;height:220px}.ring-hero .lg{flex:1}}
+.hm-head{padding:12px 16px!important}
+.hm-head .hm-name{font-size:20px;margin:0}.hm-head .lbl{font-size:12px}
+.hm-head .hm-hi>div{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.hm-chips{margin:8px -4px 8px!important}.hm-chips button{padding:6px 12px!important;font-size:13px!important}
+.hm-io>div{padding:8px 12px!important;border-radius:14px!important}.hm-io .v{font-size:19px!important;margin:2px 0 0!important}.hm-io .d{font-size:11px!important}
+.acc-card{flex-basis:140px!important;min-height:82px!important;padding:11px 12px!important;border-radius:16px!important}.acc-card .v{font-size:18px!important}
+.hm-tiles{gap:8px!important;margin:10px 0!important}.hm-tile{padding:10px 12px!important;gap:10px!important;border-radius:14px!important}.hm-tile .ic{width:34px!important;height:34px!important;font-size:16px!important}.hm-tile .v{font-size:17px!important}
+
 .hm-name{font-family:Fraunces,serif;font-size:30px;line-height:1.1;margin:2px 0 4px}
 .hm-chips{display:flex;gap:8px;overflow-x:auto;margin:14px -4px 12px;padding:0 4px;scrollbar-width:none}.hm-chips::-webkit-scrollbar{display:none}
 .hm-chips button{flex:0 0 auto;border:none;border-radius:99px;padding:8px 14px;font:600 14px inherit;font-family:inherit;background:#ffffff1a;color:var(--heroInk);cursor:pointer;white-space:nowrap}
@@ -282,12 +300,12 @@ th{color:var(--muted);font-weight:500}
   <!-- OVERZICHT -->
   <section class="view" id="v-home">
     <div id="updateBanner"></div>
+    <div class="card ring-hero"><div class="rh-glow" aria-hidden="true"></div><h2 class="rh-title">Waar gaat je geld heen</h2><div id="whereCard"></div></div>
     <div class="card hero hm-head">
       <div class="hm-hi"><div><div class="lbl" id="hmGreet">Hoi</div><div class="hm-name" id="hmName"></div><div class="lbl" id="hmPeriod"></div></div></div>
       <div class="hm-chips" id="hmChips"></div>
       <div class="hm-io" id="hmIO"></div>
     </div>
-    <div class="card ring-hero"><div class="rh-glow" aria-hidden="true"></div><h2 class="rh-title">Waar gaat je geld heen</h2><div id="whereCard"></div></div>
     <div class="sechead"><h2>Rekeningen</h2><span><button class="ghost" id="dashSync" onclick="bankSyncNow()" style="display:none">🔄 Ophalen</button></span></div>
     <div class="acc-row" id="hmAccts"></div>
     <div class="hm-tiles" id="hmTiles"></div>
@@ -2387,7 +2405,7 @@ function renderInvest(){renderDegiro();const inv=S.assets.filter(a=>a.type==='be
     :'<div class="empty">Nog geen beleggingen. Voeg je beleggingsrekening toe.</div>'}
 
 /* ---------- updates ---------- */
-const APP_VN='7.7';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='7.8';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
