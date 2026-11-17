@@ -1682,7 +1682,7 @@ async function sbConnect(){
   setSync('','Synchroniseren…');
   try{const hh=await SB.c.from('households').select('id,name,invite_code,created_by,tx_epoch').eq('id',SB.hid).maybeSingle();if(hh.data){SB.hh=hh.data;checkEpoch(hh.data.tx_epoch)}
     const mm=await SB.c.from('members').select('user_id,name').eq('household_id',SB.hid);if(mm.data)SB.members=mm.data;}catch(e){}
-  try{await sbPull(SB.firstPull);SB.firstPull=false;SB.ready=true;setSync('ok','Gesynchroniseerd');ensureCatsV2();ensureImpWipe();ensureHoreca();ensureBelasting();ensureRulesReset();ensurePeriodV1();ensureP20()}catch(e){setSync('err','Offline – wordt later verstuurd')}
+  try{await sbPull(SB.firstPull);SB.firstPull=false;SB.ready=true;setSync('ok','Gesynchroniseerd');ensureCatsV2();ensureImpWipe();ensureHoreca();ensureBelasting();ensureRulesReset();ensurePeriodV1();mergeDupCats();ensureP20()}catch(e){setSync('err','Offline – wordt later verstuurd')}
   bankStart();
   if(SB.chan)SB.c.removeChannel(SB.chan);
   SB.chan=SB.c.channel('hh-'+SB.hid).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'household_id=eq.'+SB.hid},p=>{
@@ -1780,7 +1780,7 @@ async function doJoinHh(){const name=val('hName'),code=val('hCode');if(!name||!c
   const {data,error}=await SB.c.rpc('join_household',{p_code:code,p_member_name:name});
   if(error){$('aErr').textContent=sbErr(error).message;return}
   wipeLocal();SB.hid=data.id;SB.firstPull=true;hideAuth();await sbConnect();toast('Welkom bij '+(data.name||'het huishouden'))}
-function useLocal(){setTimeout(()=>{ensureCatsV2();ensureHoreca();ensureBelasting();ensureRulesReset();ensurePeriodV1();ensureP20()},500);try{localStorage.setItem('stuiver-local','1')}catch(e){}hideAuth();setSync('','Zonder account')}
+function useLocal(){setTimeout(()=>{ensureCatsV2();ensureHoreca();ensureBelasting();ensureRulesReset();ensurePeriodV1();mergeDupCats();ensureP20()},500);try{localStorage.setItem('stuiver-local','1')}catch(e){}hideAuth();setSync('','Zonder account')}
 async function doLogout(){try{if(SB.chan)SB.c.removeChannel(SB.chan);await SB.c.auth.signOut()}catch(e){}
   SB.uid=SB.hid=SB.hh=null;SB.members=[];try{localStorage.removeItem('stuiver-hid');localStorage.removeItem('stuiver-local')}catch(e){}
   wipeLocal();clearLock();vForget();render();showAuth('login')}
@@ -1920,7 +1920,7 @@ function renderDashboard(P,d){
     <div class="kpi"><div class="s">${over>=0?'Over':'Tekort'}</div><div class="v ${over<0?'neg':''}">${fmt0(Math.abs(over))}</div><div class="d">${showSI?'na wat je opzij zette':'inkomsten min uitgaven'}</div></div>`;
   renderWhere();renderPace(P,d);renderWatch(P,d.tx);renderUpcoming();
 }
-let WHERE=[],whereTab='uit',WR={m:'p',off:0};
+let WHEREALL=false,WHERE=[],whereTab='uit',WR={m:'p',off:0};
 const MND=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
 function whereRange(){const n=new Date();if(WR.m==='p'){const P=periodAt(WR.off);return{s:P.s,e:P.e,label:dShort(P.s)+' – '+dShort(new Date(+P.e-864e5))}}if(WR.m==='y'){const y=n.getFullYear()+WR.off;return{s:new Date(y,0,1),e:new Date(y+1,0,1),label:String(y)}}
   const d=new Date(n.getFullYear(),n.getMonth()+WR.off,1);return{s:d,e:new Date(d.getFullYear(),d.getMonth()+1,1),label:MND[d.getMonth()]+' '+d.getFullYear()}}
@@ -1932,8 +1932,7 @@ function renderWhere(){const tx=whereTx(),R=whereRange();
   const by={};
   if(whereTab==='in'){tx.filter(t=>t.type==='in').forEach(t=>{if(t.cat&&catKind(t.cat)==='in'){by[t.cat]=(by[t.cat]||0)+t.amount;return}const w=whoOf(t);const k=w?'_in_'+w:'_in_'+(normName(t.desc)||'overig');by[k]=(by[k]||0)+t.amount})}
   else tx.filter(t=>t.type==='out').forEach(t=>{if(t.fixedId){if(whereTab==='uit')by._vast=(by._vast||0)+t.amount;return}
-    catAmounts(t).forEach(x=>{if(catKind(x.cat)!==whereTab)return;by[x.cat]=(by[x.cat]||0)+(+x.amount||0)})});
-  {const ks=Object.keys(by).filter(k=>by[k]>0).sort((a,b)=>by[b]-by[a]);if(ks.length>8){let rest=0;ks.slice(7).forEach(k=>{rest+=by[k];delete by[k]});by._rest=rest}}
+    catAmounts(t).forEach(x=>{const ok=x.cat&&S.cats.some(c=>c.id===x.cat);if(!ok){if(whereTab==='uit')by._none=(by._none||0)+(+x.amount||0);return}if(catKind(x.cat)!==whereTab)return;by[x.cat]=(by[x.cat]||0)+(+x.amount||0)})});
   const nav=`<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;flex-wrap:wrap">
      <div class="tabs" style="margin:0;flex:0 0 auto">${[['m','Maand'],['p','Periode'],['y','Jaar']].map(([k,l])=>`<button class="${WR.m===k?'on':''}" onclick="setWR('${k}',0)">${l}</button>`).join('')}</div>
      <div style="display:flex;align-items:center;gap:6px"><button class="outline" style="min-height:0;padding:6px 12px" onclick="setWR(WR.m,WR.off-1)">‹</button><b style="min-width:120px;text-align:center;text-transform:capitalize">${R.label}</b><button class="outline" style="min-height:0;padding:6px 12px;${WR.off>=0?'visibility:hidden':''}" onclick="setWR(WR.m,WR.off+1)">›</button></div></div>`;
@@ -1943,15 +1942,15 @@ function renderWhere(){const tx=whereTx(),R=whereRange();
   const inc=(S.settings.incomes||[]);let slot=0;
   WHERE=Object.entries(by).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([k,v])=>{const c=S.cats.find(c=>c.id===k);
     if(k.startsWith('_in_')){const id=k.slice(4),i=inc.find(x=>x.id===id);return{k,v,p:v/tot,name:i?'Salaris '+i.name:id,icon:'💶',col:SLOT[Math.min(6,slot++)]}}
-    return{k,v,p:v/tot,name:k==='_vast'?'Vaste lasten':k==='_rest'?'Overige categorieën':c?c.name:'Overig',icon:k==='_vast'?'🧾':c?c.icon:'📦',col:k==='_rest'?'var(--c8)':catColor(k)}});
+    return{k,v,p:v/tot,name:k==='_vast'?'Vaste lasten':k==='_none'?'Nog niet ingedeeld':c?c.name:'Onbekend',icon:k==='_vast'?'🧾':k==='_none'?'❓':c?c.icon:'❓',col:k==='_none'?'var(--c8)':catColor(k)}});
   let a=0;const gap=WHERE.length>1?0.035:0;
   const segs=WHERE.map((w,i)=>{const a0=a+gap/2,a1=a+w.p*2*Math.PI-gap/2;a+=w.p*2*Math.PI;
     if(WHERE.length===1)return `<circle class="seg-slice" data-i="${i}" cx="66" cy="66" r="52" fill="none" stroke="${w.col}" stroke-width="20"/>`;
     return a1>a0?`<path class="seg-slice" data-i="${i}" d="${arc(66,66,52,a0,a1)}" fill="none" stroke="${w.col}" stroke-width="20"/>`:''}).join('');
   $('whereCard').innerHTML=tabs+`<div class="where"><svg viewBox="0 0 132 132" role="img" aria-label="Uitgaven per categorie">${segs}
       <text x="66" y="62" text-anchor="middle" style="font:600 18px Fraunces,serif;fill:var(--ink)" class="amt">${fmt0(tot)}</text><text x="66" y="80" text-anchor="middle" style="font-size:11px;fill:var(--muted)">${{uit:'uitgegeven',spaar:'gespaard',beleg:'belegd',in:'ontvangen'}[whereTab]}</text></svg>
-    <div class="lg">${WHERE.slice(0,7).map((w,i)=>`<div class="li" data-i="${i}" onclick="${w.k==='_rest'?`go('budget')`:`CTX.rng=whereRange();openCatTx('${w.k}','rng')`}"><i style="background:${w.col}"></i><span class="n">${w.icon} ${esc(w.name)}</span><span class="p">${Math.round(w.p*100)}%</span><span class="a">${fmt0(w.v)}</span></div>`).join('')}
-    ${WHERE.length>7?`<div class="s" style="padding:4px 0">+ ${WHERE.length-7} meer</div>`:''}</div></div>`;
+    <div class="lg">${WHERE.slice(0,WHEREALL?99:8).map((w,i)=>`<div class="li" data-i="${i}" onclick="CTX.rng=whereRange();openCatTx('${w.k}','rng')"><i style="background:${w.col}"></i><span class="n">${w.icon} ${esc(w.name)}</span><span class="p">${Math.round(w.p*100)}%</span><span class="a">${fmt0(w.v)}</span></div>`).join('')}
+    ${WHERE.length>8?`<button class="ghost" style="padding:6px 0" onclick="WHEREALL=!WHEREALL;renderWhere()">${WHEREALL?'Minder tonen ▴':'Alle '+WHERE.length+' categorieën tonen ▾'}</button>`:''}</div></div>`;
   {const rv=tx.filter(t=>t.review&&t.type==='out');if(rv.length&&whereTab==='uit')$('whereCard').insertAdjacentHTML('beforeend',`<div class="note tap" style="margin-top:10px;cursor:pointer" onclick="openReview()">⚠️ ${rv.length} transactie${rv.length===1?'':'s'} (${fmt0(rv.reduce((a,t)=>a+t.amount,0))}) in ${R.label} ${rv.length===1?'is':'zijn'} nog niet ingedeeld en ${rv.length===1?'staat':'staan'} nu onder ${esc((S.cats.find(c=>c.id===rv[0].cat)||{name:'Overig'}).name)}. Tik om in te delen.</div>`)}
   const svg=$('whereCard').querySelector('svg');
   const hl=i=>{svg.querySelectorAll('.seg-slice').forEach(e=>e.style.opacity=i==null||+e.dataset.i===i?1:.3)};
@@ -2057,7 +2056,7 @@ async function vUnlock(useRc){const d=VAULT.doc;if(!d)return;const b=$('vBtn');i
   try{let raw;if(useRc){const rc=val('vRc').toUpperCase().replace(/[^A-Z0-9]/g,'');raw=await vUnwrap(d.wr,await vKek(rc,b64d(d.salt),d.iterR||100000))}
     else raw=await vUnwrap(d.wp,await vKek($('vPw').value,b64d(d.salt),d.iter));
     VAULT.key=await vImport(raw);try{localStorage.setItem(vCacheKey(),b64e(raw))}catch(e){}
-    $('auth').classList.remove('on');toast('Ontgrendeld');await sbPull();ensureCatsV2();ensureImpWipe();ensureHoreca();ensureBelasting();ensureRulesReset();ensurePeriodV1();ensureP20();flush();
+    $('auth').classList.remove('on');toast('Ontgrendeld');await sbPull();ensureCatsV2();ensureImpWipe();ensureHoreca();ensureBelasting();ensureRulesReset();ensurePeriodV1();mergeDupCats();ensureP20();flush();
     if(useRc)setTimeout(()=>openVaultPw(true),400)}
   catch(e){if(b){b.disabled=false;b.textContent='Openen'}$('aErr').textContent=useRc?'Deze herstelcode klopt niet.':'Dit kluiswachtwoord klopt niet.'}}
 function vaultSettings(){let h=`<h3 style="margin-top:22px">Versleuteling</h3>`;
@@ -2186,7 +2185,7 @@ function bankDisconnect(id){openSheet(`<h3>Bank ontkoppelen?</h3><p class="s">St
   <div class="actions"><button class="ghost" onclick="closeSheet()">Annuleren</button><button class="btn" style="background:var(--bad)" onclick="doBankDisconnect('${esc(id)}')">Ontkoppelen</button></div>`)}
 async function doBankDisconnect(id){closeSheet();try{await bankCall('disconnect',{id});BANK=null;renderSettings();toast('Bank ontkoppeld')}catch(e){toast(e.message)}}
 // nog indelen
-function reviewList(){const since=ymd(new Date(Date.now()-120*864e5));return allTx().filter(t=>t.review&&t.date>=since).sort((a,b)=>b.date.localeCompare(a.date))}
+function reviewList(){const since=ymd(new Date(Date.now()-120*864e5));return allTx().filter(t=>(t.review||(t.type==='out'&&!t.fixedId&&!(Array.isArray(t.splits)&&t.splits.length)&&t.cat&&!S.cats.some(c=>c.id===t.cat)))&&t.date>=since).sort((a,b)=>b.date.localeCompare(a.date))}
 function renderReviewBanner(){const el=$('reviewBanner');if(!el)return;const r=reviewList();
   el.innerHTML=r.length?`<div class="card" style="margin-top:12px;display:flex;align-items:center;gap:12px;border-color:var(--warn)"><div class="ico">🏷️</div><div class="grow"><div class="t">${r.length} transactie${r.length===1?'':'s'} nog indelen</div><div class="s">Van de bank, zonder categorie</div></div><button class="btn" style="padding:8px 12px" onclick="openReview()">Indelen</button></div>`:''}
 function openReview(){const r=reviewList();if(!r.length){closeSheet();toast('Alles is ingedeeld 🎉');return}
@@ -2220,10 +2219,11 @@ function catTxList(id,per){let list=allTx();
   else if(per==='cur'||per==='prev'){const P=per==='prev'?periodAt(bOff-1):periodAt(bOff);list=list.filter(t=>{const d=pd(t.date);return d>=P.s&&d<P.e})}
   else if(per==='3'){const a=periodAt(bOff-2).s,b=periodAt(bOff).e;list=list.filter(t=>{const d=pd(t.date);return d>=a&&d<b})}
   if(id==='_vast')return list.filter(t=>t.fixedId).map(t=>({t,a:t.amount}));
+  if(id==='_none')return list.filter(t=>t.type==='out'&&!t.fixedId).map(t=>{const a=catAmounts(t).filter(x=>!(x.cat&&S.cats.some(c=>c.id===x.cat))).reduce((s,x)=>s+(+x.amount||0),0);return a?{t,a}:null}).filter(Boolean);
   if(id&&id.startsWith('_in_')){const w=id.slice(4);return list.filter(t=>t.type==='in'&&whoOf(t)===w).map(t=>({t,a:t.amount}))}
   return list.map(t=>{if(t.fixedId)return null;const x=catAmounts(t).find(x=>x.cat===id);if(x)return{t,a:+x.amount||0};if(t.type==='in'&&t.cat===id)return{t,a:t.amount};return null}).filter(Boolean)}
 function renderCatTx(){const id=CTX.id,c=S.cats.find(c=>c.id===id);const per=CTX.per;
-  const name=id==='_vast'?'🧾 Vaste lasten':id&&id.startsWith('_in_')?'💶 Salaris':c?c.icon+' '+esc(c.name):'Categorie';
+  const name=id==='_none'?'❓ Nog niet ingedeeld':id==='_vast'?'🧾 Vaste lasten':id&&id.startsWith('_in_')?'💶 Salaris':c?c.icon+' '+esc(c.name):'Categorie';
   const items=catTxList(id,per).sort((a,b)=>b.t.date.localeCompare(a.t.date));const tot=items.reduce((s,x)=>s+(x.t.type==='in'&&catKind(x.t.cat||'')!=='in'&&c&&c.kind!=='in'?-x.a:x.a),0);
   const P=periodAt(bOff);const B=c&&per==='cur'&&(c.kind||'uit')==='uit'?catBudget(c,P):0;
   const chips=[...(CTX.rng?[['rng',CTX.rng.label]]:[]),['cur','Deze periode'],['prev','Vorige'],['3','3 periodes'],['all','Alles']].map(([v,l])=>`<button class="${per===v?'btn':'outline'}" style="padding:6px 12px;font-size:13px;min-height:0" onclick="openCatTx('${id}','${v}')">${l}</button>`).join('');
@@ -2305,6 +2305,14 @@ async function doWipeAllTx(){const rules=$('wRules')&&$('wRules').checked;closeS
     try{BANK=await bankCall('status')}catch(e){BANK=null}if(BANK&&(BANK.links||[]).length)setTimeout(openFullFetch,800)}
   catch(e){toast('Wissen lukte niet: '+(e.message||e))}}
 function ensurePeriodV1(){if(S.periodV1)return;if(VAULT.on&&!VAULT.key)return;S.settings.pstart='';S.settings.weekend='voor';S.periodV1=true;markMain();render();toast('Periode start nu bij het eerste salaris')}
+function mergeDupCats(){if(VAULT.on&&!VAULT.key)return;if(!S.catsV2)return;const seen={},ks=new Set();let n=0;
+  S.cats.slice().forEach(c=>{const key=(c.kind||'uit')+'|'+c.name.trim().toLowerCase();const keep=seen[key];if(!keep){seen[key]=c;return}
+    keep.budget=Math.max(+keep.budget||0,+c.budget||0);
+    for(const m in TX)TX[m].forEach(t=>{if(t.cat===c.id){t.cat=keep.id;ks.add('tx-'+m)}if(Array.isArray(t.splits))t.splits.forEach(x=>{if(x.cat===c.id){x.cat=keep.id;ks.add('tx-'+m)}})});
+    Object.keys(S.rules||{}).forEach(k=>{if(S.rules[k]==='c:'+c.id)S.rules[k]='c:'+keep.id;else if(S.rules[k]===c.id)S.rules[k]=keep.id});
+    (S.bo&&typeof S.bo==='object')&&Object.values(S.bo).forEach(o=>{if(o&&o[c.id]!=null&&o[keep.id]==null){o[keep.id]=o[c.id]}});
+    S.cats=S.cats.filter(x=>x!==c);n++});
+  if(n){mark('main',...ks);toast(n+' dubbele categorie'+(n>1?'ën':'')+' samengevoegd')}}
 function ensureCatsV2(){if(S.catsV2)return;if(VAULT.on&&!VAULT.key)return;let n=0;
   ['in','uit','spaar','beleg'].forEach(k=>CAT_PRESETS[k].forEach(([nm,ic])=>{if(k==='beleg'&&nm==='DEGIRO')return;if(!catExists(nm,k)){S.cats.push({id:uid(),name:nm,icon:ic,budget:0,kind:k});n++}}));
   OWN_CATS.forEach(([k,nm,ic])=>{if(!S.cats.some(c=>c.name.toLowerCase()===nm.toLowerCase())){S.cats.push({id:uid(),name:nm,icon:ic,budget:0,kind:k});n++}});
@@ -2354,7 +2362,7 @@ function renderInvest(){renderDegiro();const inv=S.assets.filter(a=>a.type==='be
     :'<div class="empty">Nog geen beleggingen. Voeg je beleggingsrekening toe.</div>'}
 
 /* ---------- updates ---------- */
-const APP_VN='7.0';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='7.1';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();

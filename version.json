@@ -1,8 +1,10 @@
 {
- "versionCode": 36,
- "versionName": "7.0",
+ "versionCode": 37,
+ "versionName": "7.1",
  "notes": [
-  "De update-melding staat nu bovenaan het homescherm"
+  "Geen dubbele 'Overig' meer: dubbele categorieën worden samengevoegd",
+  "Alle categorieën zichtbaar in de taart, geen 'Overige categorieën' meer",
+  "Transacties zonder bestaande categorie staan onder 'Nog niet ingedeeld' en in Indelen"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=36"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=37"
 }
