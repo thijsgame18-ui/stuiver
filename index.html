@@ -294,8 +294,7 @@ th{color:var(--muted);font-weight:500}
     <div class="card" id="hmAccts"></div>
     <div class="accts" id="accts" style="display:none"></div>
 
-    <div class="sechead"><h2>Top uitgaven</h2><span class="s" id="hmTopLbl"></span></div>
-    <div class="card" id="hmTop"></div>
+    <div id="hmTopLbl" style="display:none"></div><div id="hmTop" style="display:none"></div>
     <div class="kpis" id="flowCard" style="display:none"></div>
 
     <div class="dash2">
@@ -2355,7 +2354,7 @@ function renderInvest(){renderDegiro();const inv=S.assets.filter(a=>a.type==='be
     :'<div class="empty">Nog geen beleggingen. Voeg je beleggingsrekening toe.</div>'}
 
 /* ---------- updates ---------- */
-const APP_VN='6.8';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='6.9';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
