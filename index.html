@@ -269,6 +269,7 @@ th{color:var(--muted);font-weight:500}
 
   <!-- OVERZICHT -->
   <section class="view" id="v-home">
+    <div id="updateBanner"></div>
     <div class="card hero hm-head">
       <div class="hm-hi"><div><div class="lbl" id="hmGreet">Hoi</div><div class="hm-name" id="hmName"></div><div class="lbl" id="hmPeriod"></div></div></div>
       <div class="hm-chips" id="hmChips"></div>
@@ -286,7 +287,6 @@ th{color:var(--muted);font-weight:500}
       <div id="heroRing" style="display:none"></div>
     </div>
     <div class="btnrow"><button class="btn" onclick="openTx()">+ Transactie</button><button class="outline" onclick="go('import')">⬇︎ Importeren</button><button class="outline" id="scanBtn" onclick="startScan()">📷 Bon</button></div>
-    <div id="updateBanner"></div>
     <div id="reportBanner"></div>
     <div id="reviewBanner"></div>
 
@@ -2354,7 +2354,7 @@ function renderInvest(){renderDegiro();const inv=S.assets.filter(a=>a.type==='be
     :'<div class="empty">Nog geen beleggingen. Voeg je beleggingsrekening toe.</div>'}
 
 /* ---------- updates ---------- */
-const APP_VN='6.9';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='7.0';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();

@@ -1,8 +1,8 @@
 {
- "versionCode": 35,
- "versionName": "6.9",
+ "versionCode": 36,
+ "versionName": "7.0",
  "notes": [
-  "Top uitgaven weggehaald van het homescherm"
+  "De update-melding staat nu bovenaan het homescherm"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=35"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=36"
 }
