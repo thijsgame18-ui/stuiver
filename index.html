@@ -328,13 +328,9 @@ th{color:var(--muted);font-weight:500}
     <div id="hmTopLbl" style="display:none"></div><div id="hmTop" style="display:none"></div>
     <div class="kpis" id="flowCard" style="display:none"></div>
 
-    <div class="dash2">
-      <div>
-        <div class="sechead"><h2>Uitgavenverloop</h2></div>
-        <div class="card" id="paceCard"></div>
-        <div class="card" id="forecastCard" style="margin-top:12px"></div>
-      </div>
-    </div>
+    <div class="sechead"><h2>Waar je het vaakst komt</h2></div>
+    <div class="card" id="freqCard"></div>
+    <div id="paceCard" style="display:none"></div><div id="forecastCard" style="display:none"></div>
 
     <div class="dash2">
       <div id="watchCard" style="display:none"></div>
@@ -1961,7 +1957,7 @@ function renderDashboard(P,d){
     <div class="kpi"><div class="s">Uitgaven</div><div class="v">${fmt0(sd.out)}</div>${delta(sd.out,pv.out)}</div>
     ${showSI?`<div class="kpi"><div class="s">🐷 Sparen</div><div class="v">${fmt0(sd.sav)}</div></div><div class="kpi"><div class="s">📈 Beleggen</div><div class="v">${fmt0(sd.inv)}</div></div>`:''}
     <div class="kpi"><div class="s">${over>=0?'Over':'Tekort'}</div><div class="v ${over<0?'neg':''}">${fmt0(Math.abs(over))}</div><div class="d">${showSI?'na wat je opzij zette':'inkomsten min uitgaven'}</div></div>`;
-  renderWhere();renderPace(P,d);renderWatch(P,d.tx);renderUpcoming();
+  renderWhere();renderPace(P,d);try{renderFreq()}catch(e){console.error(e)}renderWatch(P,d.tx);renderUpcoming();
 }
 let WHEREALL=false,WHERE=[],whereTab='uit',WR={m:'p',off:0};
 const MND=['januari','februari','maart','april','mei','juni','juli','augustus','september','oktober','november','december'];
@@ -2404,8 +2400,25 @@ function renderInvest(){renderDegiro();const inv=S.assets.filter(a=>a.type==='be
     <div class="btnrow" style="margin:0 0 6px"><button class="outline" onclick="openInvest('${a.id}')">+ Inleg</button><button class="outline" onclick="openAsset('${a.id}')">Waarde bijwerken</button></div>`}).join('')
     :'<div class="empty">Nog geen beleggingen. Voeg je beleggingsrekening toe.</div>'}
 
+
+/* ---------- waar je het vaakst komt ---------- */
+let FQ={r:'p',all:false};
+function merchName(d){let x=String(d||'').replace(/^(naam|omschrijving):\s*/i,'').split(/\s+via\s+|\s*[*>]|\s+\d|\s+kaartnr|,|\s+nld\b|\s+valutadatum/i)[0].trim();if(x.length<2)x=String(d||'').slice(0,28);return x.replace(/\b(bv|b\.v\.|nv)\b\.?/ig,'').replace(/\s+/g,' ').trim().replace(/(^|\s)\S/g,c=>c.toUpperCase())}
+function freqRange(){const P=periodAt(0);if(FQ.r==='p')return{s:P.s,e:P.e,label:'deze periode'};if(FQ.r==='3')return{s:periodAt(-2).s,e:P.e,label:'laatste 3 periodes'};const y=new Date().getFullYear();return{s:new Date(y,0,1),e:new Date(y+1,0,1),label:String(y)}}
+function freqData(){const R=freqRange(),g={};
+  allTx().forEach(t=>{if(t.type!=='out'||t.fixedId)return;const d=pd(t.date);if(d<R.s||d>=R.e)return;const k=t.cat&&catKind(t.cat);if(k==='spaar'||k==='beleg')return;
+    const key=normName(t.desc)||t.desc;const e=g[key]=g[key]||{key,name:merchName(t.desc),n:0,v:0,cat:t.cat,txs:[]};e.n++;e.v+=t.amount;e.txs.push(t)});
+  return Object.values(g).filter(x=>x.n>=2).sort((a,b)=>b.n-a.n||b.v-a.v)}
+function setFQ(r){FQ.r=r;renderFreq()}
+function renderFreq(){const el=$('freqCard');if(!el)return;const L=freqData(),R=freqRange();const show=FQ.all?L.slice(0,40):L.slice(0,8);const mx=L[0]?.n||1;
+  const chips=[['p','Deze periode'],['3','3 periodes'],['y','Dit jaar']].map(([v,l])=>`<button class="${FQ.r===v?'on':''}" onclick="setFQ('${v}')">${l}</button>`).join('');
+  el.innerHTML=`<div class="tabs" style="margin:0 0 8px">${chips}</div>`+(show.length?show.map((x,i)=>{const c=S.cats.find(c=>c.id===x.cat);return `<div class="item tap" onclick="openFreq(${i})"><div class="ico" style="font-weight:700;font-size:14px">${c?c.icon:esc(x.name.slice(0,1))}</div><div class="grow"><div class="t">${esc(x.name)}</div><div class="s">${x.n}× · gemiddeld ${fmt(x.v/x.n)}</div><div class="hm-bar" style="height:5px;margin-top:5px"><i style="width:${Math.max(4,x.n/mx*100)}%;background:${c?catColor(c.id):'var(--c8)'}"></i></div></div><div class="amt" style="text-align:right">${fmt0(x.v)}</div></div>`}).join('')
+    +(L.length>8?`<button class="ghost" style="padding:8px 0" onclick="FQ.all=!FQ.all;renderFreq()">${FQ.all?'Minder tonen ▴':'Alle '+L.length+' tonen ▾'}</button>`:''):`<div class="empty">Nog geen winkels waar je ${R.label} vaker dan één keer kwam.</div>`);
+  window._FQL=L}
+function openFreq(i){const x=(window._FQL||[])[i];if(!x)return;const txs=x.txs.slice().sort((a,b)=>b.date.localeCompare(a.date));
+  openSheet(`<h3>${esc(x.name)}</h3><div class="kv"><span>${x.n}× ${freqRange().label}</span><span class="amt">${fmt(x.v)}</span></div><div class="s" style="margin:4px 0 8px">Gemiddeld ${fmt(x.v/x.n)} per keer. Tik op een betaling om de categorie te wijzigen.</div>${txs.map(t=>txRow(t)).join('')}<div class="actions"><button class="ghost" onclick="closeSheet()">Sluiten</button></div>`)}
 /* ---------- updates ---------- */
-const APP_VN='7.9';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='8.0';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();

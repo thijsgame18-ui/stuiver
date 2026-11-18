@@ -1,8 +1,8 @@
 {
- "versionCode": 45,
- "versionName": "7.9",
+ "versionCode": 46,
+ "versionName": "8.0",
  "notes": [
-  "Bijwerken gaat voortaan in één tik, zonder extra vraag van Android (Android 12 en nieuwer)"
+  "Nieuw blok 'Waar je het vaakst komt' in plaats van het uitgavenverloop"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=45"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=46"
 }
