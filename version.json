@@ -1,8 +1,8 @@
 {
- "versionCode": 46,
- "versionName": "8.0",
+ "versionCode": 47,
+ "versionName": "8.1",
  "notes": [
-  "Nieuw blok 'Waar je het vaakst komt' in plaats van het uitgavenverloop"
+  "Winkels gesorteerd op waar je het meest uitgeeft, met de keuze Duurst of Vaakst"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=46"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=47"
 }
