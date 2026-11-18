@@ -2403,7 +2403,7 @@ function renderInvest(){renderDegiro();const inv=S.assets.filter(a=>a.type==='be
 
 /* ---------- waar je het vaakst komt ---------- */
 let FQ={r:'p',all:false,s:'v'};
-function merchName(d){let x=String(d||'').replace(/^(naam|omschrijving):\s*/i,'').split(/\s+via\s+|\s*[*>]|\s+\d|\s+kaartnr|,|\s+nld\b|\s+valutadatum/i)[0].trim();if(x.length<2)x=String(d||'').slice(0,28);return x.replace(/\b(bv|b\.v\.|nv)\b\.?/ig,'').replace(/\s+/g,' ').trim().replace(/(^|\s)\S/g,c=>c.toUpperCase())}
+function merchName(d){let x=String(d||'').replace(/^(naam|omschrijving):\s*/i,'').replace(/^[A-Za-z]{2,5}\*/,'').split(/\s+via\s+|\s*[*>]|\s+\d|\s+kaartnr|,|\s+nld\b|\s+valutadatum/i)[0].trim();if(x.length<2)x=String(d||'').slice(0,28);return x.replace(/\b(bv|b\.v\.|nv)\b\.?/ig,'').replace(/\s+/g,' ').trim().replace(/(^|\s)\S/g,c=>c.toUpperCase())}
 function freqRange(){const P=periodAt(0);if(FQ.r==='p')return{s:P.s,e:P.e,label:'deze periode'};if(FQ.r==='3')return{s:periodAt(-2).s,e:P.e,label:'laatste 3 periodes'};const y=new Date().getFullYear();return{s:new Date(y,0,1),e:new Date(y+1,0,1),label:String(y)}}
 function freqData(){const R=freqRange(),g={};
   allTx().forEach(t=>{if(t.type!=='out'||t.fixedId)return;const d=pd(t.date);if(d<R.s||d>=R.e)return;const k=t.cat&&catKind(t.cat);if(k==='spaar'||k==='beleg')return;
@@ -2419,7 +2419,7 @@ function renderFreq(){const el=$('freqCard');if(!el)return;const L=freqData(),R=
 function openFreq(i){const x=(window._FQL||[])[i];if(!x)return;const txs=x.txs.slice().sort((a,b)=>b.date.localeCompare(a.date));
   openSheet(`<h3>${esc(x.name)}</h3><div class="kv"><span>${x.n}× ${freqRange().label}</span><span class="amt">${fmt(x.v)}</span></div><div class="s" style="margin:4px 0 8px">Gemiddeld ${fmt(x.v/x.n)} per keer. Tik op een betaling om de categorie te wijzigen.</div>${txs.map(t=>txRow(t)).join('')}<div class="actions"><button class="ghost" onclick="closeSheet()">Sluiten</button></div>`)}
 /* ---------- updates ---------- */
-const APP_VN='8.1';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='8.2';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();

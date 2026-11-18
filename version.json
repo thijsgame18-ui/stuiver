@@ -1,8 +1,9 @@
 {
- "versionCode": 47,
- "versionName": "8.1",
+ "versionCode": 48,
+ "versionName": "8.2",
  "notes": [
-  "Winkels gesorteerd op waar je het meest uitgeeft, met de keuze Duurst of Vaakst"
+  "Winkels gesorteerd op waar je het meest uitgeeft, met de keuze Duurst of Vaakst",
+  "Betere winkelnamen, bijvoorbeeld 'Bouwmarkt Barnevel' in plaats van 'BCK'"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=47"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=48"
 }
