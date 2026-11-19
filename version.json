@@ -1,8 +1,9 @@
 {
- "versionCode": 50,
- "versionName": "8.4",
+ "versionCode": 51,
+ "versionName": "8.5",
  "notes": [
-  "Opnames van een spaarrekening op dezelfde dag als je het saldo invulde tellen nu ook mee"
+  "Bij een ontvangen transactie kun je kiezen: 'Van eigen spaarrekening (geen inkomen)'",
+  "Vul je een rekeningnummer in bij een spaarrekening, dan past Stuiver meteen ook oude overboekingen aan"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=50"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=51"
 }

@@ -1137,7 +1137,7 @@ function openTx(id,pre){CTXRET=CTX.back?CTX.id:null;CTX.back=0;
    <label>Bedrag</label><input id="fAmt" inputmode="decimal" placeholder="0,00" value="${t.amount?nf2.format(t.amount):''}">
    <label>Omschrijving</label><input id="fDesc" placeholder="bijv. supermarkt" value="${esc(t.desc||'')}">
    <div id="whoWrap">${(S.settings.incomes||[]).length?`<label>Van wie</label><select id="fWho"><option value="">Anders / niet van toepassing</option>${S.settings.incomes.map(i=>`<option value="${i.id}" ${(t.who||(t.amount&&t.date?guessWho(t.date,t.amount):''))===i.id?'selected':''}>${esc(i.name)}</option>`).join('')}</select>`:''}</div>
-   <div id="inCatWrap">${S.cats.some(c=>c.kind==='in')?`<label>Soort inkomen</label><select id="fInCat"><option value="">Geen</option>${S.cats.filter(c=>c.kind==='in').map(c=>`<option value="${c.id}" ${c.id===t.cat?'selected':''}>${c.icon} ${esc(c.name)}</option>`).join('')}</select>`:''}</div>
+   <div id="inCatWrap">${S.cats.some(c=>c.kind==='in')?`<label>Soort inkomen</label><select id="fInCat"><option value="">Geen</option><optgroup label="Inkomen">${S.cats.filter(c=>c.kind==='in').map(c=>`<option value="${c.id}" ${c.id===t.cat?'selected':''}>${c.icon} ${esc(c.name)}</option>`).join('')}</optgroup><optgroup label="Van eigen spaarrekening (geen inkomen)">${S.cats.filter(c=>c.kind==='spaar').map(c=>`<option value="${c.id}" ${c.id===t.cat?'selected':''}>${c.icon} ${esc(c.name)}</option>`).join('')}</optgroup><optgroup label="Van beleggingsrekening">${S.cats.filter(c=>c.kind==='beleg').map(c=>`<option value="${c.id}" ${c.id===t.cat?'selected':''}>${c.icon} ${esc(c.name)}</option>`).join('')}</optgroup></select>`:''}</div>
    <div id="catWrap"><div id="oneCat"><label>Categorie</label><select id="fCat">${catGroupedOpts(t.cat)}</select></div>
      <div id="splitBox" style="display:none"></div>
      <button class="ghost" id="splitBtn" style="padding:8px 0" onclick="toggleSplit()">✂️ Splitsen over categorieën</button></div>
@@ -1284,7 +1284,7 @@ function openAsset(id,ptype){const a=S.assets.find(a=>a.id===id)||{type:ptype||'
    <div id="invWrap" style="display:${a.type==='beleg'?'':'none'}"><label>Totaal ingelegd</label><input id="aInv" inputmode="decimal" value="${a.invested||''}"><div class="note">Zo zie je je rendement.</div></div>
    ${btns(`saveAsset('${id||''}')`,id?`delAsset('${id}')`:'')}`)}
 function saveAsset(id){const n=val('aName');if(!n)return;const ty=val('aType');const d={type:ty,name:n,amount:num('aAmt'),invested:num('aInv'),updated:ty==='betaal'?(val('aDate')||today()):ty==='spaar'?(val('aSDate')||today()):today()};if(ty==='spaar'){d.cat=val('aCat')||null;d.match=val('aMatch')||'';const tmp={type:'spaar',cat:d.cat,match:d.match};d.updIds=allTx().filter(t=>t.date===d.updated&&spaarHit(tmp,t)).map(t=>t.id)}
-  if(id)Object.assign(S.assets.find(a=>a.id===id),d);else S.assets.push({id:uid(),...d});snapshotWorth();closeSheet();markMain()}
+  if(id)Object.assign(S.assets.find(a=>a.id===id),d);else S.assets.push({id:uid(),...d});snapshotWorth();closeSheet();markMain();if(ty==='spaar'){ensureInternalV1();render()}}
 function delAsset(id){S.assets=S.assets.filter(a=>a.id!==id);snapshotWorth();closeSheet();markMain()}
 
 /* ---------- kan ik dit betalen ---------- */
@@ -2361,8 +2361,9 @@ function spaarMatch(t){const txt=((t.desc||'')+' '+(t.note||'')).toLowerCase(),f
 function classifyInternal(t){const m=spaarMatch(t);if(!m)return false;const k=t.cat&&catKind(t.cat);
   if(m.asset&&m.asset.cat){if(t.cat===m.asset.cat&&!t.review)return false;t.cat=m.asset.cat;delete t.review;delete t.fixedId;if(t.type==='in'){t.who=null;delete t.whoManual}return true}
   if(k==='spaar'||k==='beleg')return false;if(!t.review){t.review=true;return true}return false}
-function ensureInternalV1(){if(S.internalV1)return;if(VAULT.on&&!VAULT.key)return;if(!S.catsV2)return;const ks=new Set();
-  for(const m in TX)TX[m].forEach(t=>{if(classifyInternal(t))ks.add('tx-'+m)});S.internalV1=true;mark('main',...ks);if(ks.size)render()}
+function spaarSig(){return S.assets.filter(a=>a.type==='spaar').map(a=>a.id+':'+(a.match||'')+':'+(a.cat||'')).join('|')}
+function ensureInternalV1(){const sig=spaarSig();if(S.internalV1&&S.internalSig===sig)return;if(VAULT.on&&!VAULT.key)return;if(!S.catsV2)return;const ks=new Set();
+  for(const m in TX)TX[m].forEach(t=>{if(classifyInternal(t))ks.add('tx-'+m)});S.internalV1=true;S.internalSig=sig;mark('main',...ks);if(ks.size)render()}
 function ensureCatsV2(){if(S.catsV2)return;if(VAULT.on&&!VAULT.key)return;let n=0;
   ['in','uit','spaar','beleg'].forEach(k=>CAT_PRESETS[k].forEach(([nm,ic])=>{if(k==='beleg'&&nm==='DEGIRO')return;if(!catExists(nm,k)){S.cats.push({id:uid(),name:nm,icon:ic,budget:0,kind:k});n++}}));
   OWN_CATS.forEach(([k,nm,ic])=>{if(!S.cats.some(c=>c.name.toLowerCase()===nm.toLowerCase())){S.cats.push({id:uid(),name:nm,icon:ic,budget:0,kind:k});n++}});
@@ -2430,7 +2431,7 @@ function renderFreq(){const el=$('freqCard');if(!el)return;const L=freqData(),R=
 function openFreq(i){const x=(window._FQL||[])[i];if(!x)return;const txs=x.txs.slice().sort((a,b)=>b.date.localeCompare(a.date));
   openSheet(`<h3>${esc(x.name)}</h3><div class="kv"><span>${x.n}× ${freqRange().label}</span><span class="amt">${fmt(x.v)}</span></div><div class="s" style="margin:4px 0 8px">Gemiddeld ${fmt(x.v/x.n)} per keer. Tik op een betaling om de categorie te wijzigen.</div>${txs.map(t=>txRow(t)).join('')}<div class="actions"><button class="ghost" onclick="closeSheet()">Sluiten</button></div>`)}
 /* ---------- updates ---------- */
-const APP_VN='8.4';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='8.5';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
