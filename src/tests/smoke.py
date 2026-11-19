@@ -31,6 +31,17 @@ async def main():
             check('geen spaaropname als inkomen',r['inc']<9000 or r['inc']==8900,r)
             check('reis gevonden',r['trips']==1,r);check('3-weg merge',r['m3']==2,r);check('freq',r['freq']>0,r);check('planner',r['plan']>5,r)
             check('jaaroverzicht',r['yr'],r);check('taart',r['where']>0,r);check('opruimen',r['clean'],r);check('budgetvoorstel',r['sug'],r)
+            r2=await pg.evaluate("""()=>{const a=S.assets.find(a=>a.id==='b');a.updated='2026-11-01';a.amount=500;
+               const net=allTx().filter(t=>t.date>'2026-11-01'&&t.date<='2026-11-18').reduce((s,t)=>s+(t.type==='in'?t.amount:-t.amount),0);
+               reconCheck(a,500+net-25,'2026-11-18');const rc=S.recon.diff;openRecon();closeSheet();renderImproveBanners();
+               const m='2026-11';TX[m].push({id:'rv1',type:'out',amount:12,desc:'Nieuwe Winkel 9',date:'2026-11-17',cat:null,review:true});
+               openSwipe();const sw=!!$('swCard');swPick(swSug(SW.g[0])[0]||'c:'+S.cats[0].id);const done=!findTx('rv1').t.review;swUndo();const und=!!findTx('rv1').t.review;closeSheet();SW.on=false;
+               S.goals=[{id:'g1',name:'Doel',icon:'🎯',target:5000,saved:0,monthly:0,deadline:'2027-12-01',acct:'a2'}];syncGoals();go('doelen');renderGoals();const gs=S.goals[0].saved,ga=acctBalance(S.assets.find(a=>a.id==='a2'));
+               const T=dgTax({div:[{d:'2025-03-01',isin:'CH0012',cur:'CHF',geur:100,eur:65},{d:'2025-04-01',isin:'NL0001',cur:'EUR',geur:100,eur:85},{d:'2025-05-01',isin:'US0001',cur:'USD',geur:100,eur:85}]},2025);
+               const html=dgTaxHTML({div:[{d:'2025-03-01',isin:'CH0012',cur:'CHF',geur:100,eur:65}]});
+               return{rc,sw,done,und,gs,ga,pace:Array.isArray(paceData()),tnl:T.nl,tfo:T.fo,tback:T.back,html:html.includes('Zwitserland')}}""")
+            check('saldocontrole',abs(r2['rc']+25)<0.01,r2);check('snel indelen',r2['sw'] and r2['done'] and r2['und'],r2);check('spaardoel gekoppeld',abs(r2['gs']-r2['ga'])<0.01,r2)
+            check('budgettempo',r2['pace'],r2);check('dividendbelasting',abs(r2['tnl']-15)<.01 and abs(r2['tfo']-30)<.01 and abs(r2['tback']-20)<.01 and r2['html'],r2)
             await pg.evaluate("checkUpdate(true)");await pg.wait_for_timeout(400)
             check('update-melding','9.9' in (await pg.evaluate("$('updateBanner').innerText")),'')
             check(f'JS-fouten (donker={dark})',not errs,errs[:3])

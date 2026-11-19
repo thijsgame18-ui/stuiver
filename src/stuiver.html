@@ -391,6 +391,7 @@ nav .plus svg{width:26px;height:26px;stroke-width:2.4}
     <div id="reviewBanner"></div>
     <div id="priceBanner"></div>
     <div id="improveBanner"></div>
+    <div id="paceWarn"></div>
 </div>
 <div style="order:5">
     <div class="sechead"><h2>Rekeningen</h2><span><button class="ghost" id="dashSync" onclick="bankSyncNow()" style="display:none">🔄 Ophalen</button></span></div>
@@ -751,7 +752,7 @@ const pad=n=>String(n).padStart(2,'0');
 const ymd=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
 const today=()=>ymd(new Date());
 const pd=s=>new Date(s+'T12:00');
-const dShort=d=>d.toLocaleDateString('nl-NL',{day:'numeric',month:'short'});
+const DSF=new Intl.DateTimeFormat('nl-NL',{day:'numeric',month:'short'}),DSC=new Map();const dShort=d=>{const k=+d;let v=DSC.get(k);if(v===undefined){v=DSF.format(d);if(DSC.size>4000)DSC.clear();DSC.set(k,v)}return v};
 const clone=o=>JSON.parse(JSON.stringify(o));
 function parseNL(v){let s=String(v??'').replace(/[€\s]/g,'');if(!s)return 0;
   if(s.includes(','))s=s.replace(/\./g,'').replace(',','.');else if(!/^-?\d+\.\d{1,2}$/.test(s))s=s.replace(/\./g,'');
@@ -892,7 +893,7 @@ function periodAt(off=0){
 }
 const pKey=p=>ymd(p.s);
 const pLabel=p=>`${dShort(p.s)} – ${dShort(new Date(p.e-864e5))}`;
-const txIn=p=>allTx().filter(t=>{const d=pd(t.date);return d>=p.s&&d<p.e});
+const txIn=p=>{const a=ymd(p.s),b=ymd(p.e),ma=a.slice(0,7),mb=b.slice(0,7),out=[];for(const m in TX){if(m<ma||m>mb)continue;const L=TX[m];for(let i=0;i<L.length;i++){const t=L[i];if(t.date>=a&&t.date<b)out.push(t)}}return out};
 const perMonth=f=>f.freq==='jaar'?f.amount/12:f.freq==='kwartaal'?f.amount/3:f.freq==='week'?f.amount*52/12:f.amount;
 const monthToPeriod=m=>S.settings.ptype==='maand'?m:S.settings.ptype==='week'?m*12/52:m*12/13;
 const periodsPerYear=()=>S.settings.ptype==='maand'?12:S.settings.ptype==='week'?52:13;
@@ -918,7 +919,7 @@ const goalsMonthly=()=>S.goals.reduce((a,g)=>a+(g.saved<g.target?(+g.monthly||0)
 function worth(){
   let a=0,l=0,sp=0,be=0;
   S.assets.forEach(x=>{const t=ASSET_TYPES[x.type]||ASSET_TYPES.bezit;const v=x.type==='spaar'?acctBalance(x):x.amount;if(t[2])l+=v;else{a+=v;if(x.type==='spaar')sp+=v;if(x.type==='beleg')be+=x.amount}});
-  const g=S.goals.reduce((s,g)=>s+(+g.saved||0),0);a+=g;sp+=g;
+  const g=S.goals.reduce((s,g)=>s+(g.acct?0:(+g.saved||0)),0);a+=g;sp+=g;
   return{a,l,net:a-l,sp,be}
 }
 function snapshotWorth(){const w=worth();S.hist[today().slice(0,7)]={a:w.a,l:w.l,sp:w.sp,be:w.be}}
@@ -1002,7 +1003,7 @@ function renderHome(){if(!$('hmIO'))return;const P=periodAt(0),Pv=periodAt(-1);c
   $('hmAccts').innerHTML=rows+`<div class="acc-card add" onclick="openAsset(null,'spaar')">+ Rekening</div>`;
   // top uitgaven
   const by={};a.tx.filter(t=>t.type==='out').forEach(t=>{if(t.fixedId){const f=S.fixed.find(f=>f.id===t.fixedId);const k=t.cat&&catKind(t.cat)==='uit'?t.cat:'fx:'+t.fixedId;by[k]=by[k]||{v:0,name:f?f.name:'Vaste last',icon:f?.icon||'🧾',k};by[k].v+=t.amount;return}
-    catAmounts(t).forEach(x=>{if(catKind(x.cat)!=='uit')return;const c=S.cats.find(c=>c.id===x.cat);by[x.cat]=by[x.cat]||{v:0,name:c?c.name:'Overig',icon:c?.icon||'📦',k:x.cat};by[x.cat].v+=+x.amount||0})});
+    catAmounts(t).forEach(x=>{if(catKind(x.cat)!=='uit')return;const c=S.cats.find(c=>c.id===x.cat),kk=x.cat||'_none';by[kk]=by[kk]||{v:0,name:c?c.name:'Nog in te delen',icon:c?.icon||'📦',k:kk};by[kk].v+=+x.amount||0})});
   const top=Object.values(by).filter(x=>x.v>0).sort((p,q)=>q.v-p.v).slice(0,6),mx=top[0]?.v||1;
   $('hmTopLbl').textContent='deze periode';
   $('hmTop').innerHTML=top.length?top.map(x=>`<div class="hm-toprow" onclick="${x.k.startsWith('fx:')?`go('vast')`:`CTX.rng={s:P.s,e:P.e,label:'Deze periode'};openCatTx('${x.k}','rng')`}"><div style="min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${x.icon} ${esc(x.name)}</div><div class="hm-bar"><i style="width:${Math.max(3,x.v/mx*100)}%;background:${x.k.startsWith('fx:')?'var(--cfix)':catColor(x.k)}"></i></div><div class="amt" style="min-width:64px;text-align:right">${fmt0(x.v)}</div></div>`).join(''):'<div class="empty">Nog geen uitgaven deze periode.</div>'}
@@ -1016,7 +1017,7 @@ function freeCalc(P,x){const expInc=Math.max(expectedIncome(),x.inc);
   if(acc.length){const bal=acc.reduce((t,a)=>t+acctBalance(a),0);const real=bal+incLeft-fixedLeft;
     if(real<free){const diff=free-real;note=`Je rekening staat op ${fmt0(bal)}${incLeft?` (+ ${fmt0(incLeft)} inkomen dat nog komt)`:''}${fixedLeft?` − ${fmt0(fixedLeft)} vaste lasten die nog komen`:''}. Aan het begin van deze periode stond de rekening ongeveer ${fmt0(diff)} in de min. Dat tekort gaat af van de ${fmt0(free)} die je deze periode overhoudt.`;free=real}}
   return {free,used:expInc>0?Math.max(0,1-free/expInc):0,expInc,fixedLeft,note}}
-function render(){
+function render(){try{syncGoals()}catch(e){}
   document.documentElement.dataset.theme=S.settings.theme;document.documentElement.dataset.dark=S.settings.dark;
   const P=periodAt(0);$('periodLbl').textContent='Periode '+pLabel(P);
   const {inc,out,varOut,tx,sav,inv}=sums(P);
@@ -1148,7 +1149,19 @@ function renderWorth(){
   $('worthGroups').innerHTML=html||'<div class="card empty">Voeg je spaarrekening, beleggingen, woning en schulden toe.</div>';
 }
 
-function goalCard(g){
+function syncGoals(){(S.goals||[]).forEach(g=>{if(!g.acct)return;const a=S.assets.find(a=>a.id===g.acct);if(a)g.saved=Math.round(acctBalance(a)*100)/100})}
+function acctFlow(a){const since=ymd(new Date(Date.now()-91*864e5));let n=0;allTx().forEach(t=>{if(t.date>=since&&spaarHit(a,t))n+=t.type==='out'?t.amount:-t.amount});return n/3}
+function goalCard(g){const A=g.acct&&S.assets.find(a=>a.id===g.acct);
+  if(A){const p=g.target?g.saved/g.target*100:0,fl=acctFlow(A),left=g.target-g.saved;let st='',col='';
+    if(left<=0){st='Behaald 🎉';col='var(--good)'}
+    else if(g.deadline){const mLeft=Math.max(.5,(pd(g.deadline)-new Date())/(864e5*30.44)),need=left/mLeft;
+      if(fl>=need*.95){st=`✅ Op schema · nodig ${fmt0(need)}/mnd, je zet er gemiddeld ${fmt0(fl)} op`;col='var(--good)'}
+      else{st=`⚠️ ${fmt0(need-Math.max(0,fl))}/mnd te weinig · nodig ${fmt0(need)}/mnd, gemiddeld ${fmt0(Math.max(0,fl))}`;col='var(--bad)'}}
+    else if(fl>0){const m=Math.ceil(left/fl);const d=new Date();d.setMonth(d.getMonth()+m);st=`In dit tempo (${fmt0(fl)}/mnd) klaar rond ${d.toLocaleDateString('nl-NL',{month:'long',year:'numeric'})}`}
+    else st=fl<0?`⚠️ Er gaat gemiddeld ${fmt0(-fl)}/mnd áf. Kies een datum om te zien wat er nodig is.`:'De afgelopen 3 maanden is er niets bijgekomen.';
+    return `<div class="card tap" onclick="openGoal('${g.id}')"><div style="display:flex;align-items:center;gap:12px"><div class="ico">${g.icon||'🎯'}</div>
+    <div class="grow"><div class="t">${esc(g.name)}</div><div class="s">🔗 ${esc(A.name)} · <span class="amt">${fmt0(g.saved)}</span> van ${fmt0(g.target)}${g.deadline?' · '+new Date(g.deadline).toLocaleDateString('nl-NL',{month:'short',year:'numeric'}):''}</div></div><span class="pill ${p>=100?'good':''}">${Math.round(p)}%</span></div>
+    <div class="bar"><i style="width:${Math.min(100,Math.max(0,p))}%"></i></div><div class="s" style="margin-top:8px;color:${col||'var(--muted)'}">${st}</div></div>`}
   const p=g.target?g.saved/g.target*100:0;let eta='';
   if(g.saved>=g.target)eta=' · behaald 🎉';
   else if(g.monthly>0){const m=Math.ceil((g.target-g.saved)/g.monthly);const d=new Date();d.setMonth(d.getMonth()+m);eta=` · klaar rond ${d.toLocaleDateString('nl-NL',{month:'long',year:'numeric'})}`}
@@ -1158,7 +1171,9 @@ function goalCard(g){
     <div class="bar"><i style="width:${Math.min(100,p)}%"></i></div>
     <div class="actions" style="margin-top:10px"><button class="ghost" onclick="openDeposit('${g.id}')">+ Inleggen</button><button class="ghost" onclick="openGoal('${g.id}')">Bewerken</button></div></div>`
 }
-function renderGoals(){$('goalList').innerHTML=S.goals.map(goalCard).join('')||'<div class="card empty">Nog geen spaardoelen. Wat wil je bereiken?</div>'}
+function renderGoals(){syncGoals();const free=S.assets.filter(a=>a.type==='spaar'&&!S.goals.some(g=>g.acct===a.id));
+  $('goalList').innerHTML=(S.goals.map(goalCard).join('')||'<div class="card empty">Nog geen spaardoelen. Wat wil je bereiken?</div>')
+   +(free.length?`<div class="card" style="margin-top:12px"><div class="t" style="font-weight:700">Geef je spaarrekeningen een doel</div><div class="s">Dan volgt het doel vanzelf het saldo, en zie je of je op schema zit.</div>${free.map(a=>`<div class="item"><div class="grow"><div class="t">${esc(a.name)}</div><div class="s amt">${fmt0(acctBalance(a))}</div></div><button class="outline" onclick="openGoal('',null,'${a.id}')">Doel maken</button></div>`).join('')}</div>`:'')}
 
 /* ---------- grafieken ---------- */
 function barChart(data){ // [{label,a,b}]
@@ -1313,17 +1328,18 @@ function bookFixed(){
 }
 
 /* ---------- doelen ---------- */
-function openGoal(id){const g=S.goals.find(g=>g.id===id)||{name:'',icon:'✈️',target:'',saved:0,monthly:0,deadline:''};
+function openGoal(id,_x,acct){const g=S.goals.find(g=>g.id===id)||{name:acct?(S.assets.find(a=>a.id===acct)||{}).name||'':'',icon:'✈️',target:'',saved:0,monthly:0,deadline:'',acct:acct||''};const sp=S.assets.filter(a=>a.type==='spaar');
   openSheet(`<h3>${id?'Spaardoel bewerken':'Nieuw spaardoel'}</h3>
    <label>Waarvoor spaar je?</label><input id="gName" value="${esc(g.name)}" placeholder="bijv. Vakantie, Nieuwe auto">
    <label>Icoon</label>${iconSel('gIcon',g.icon)}
    <label>Doelbedrag</label><input id="gTarget" inputmode="decimal" value="${g.target}">
-   <label>Al gespaard</label><input id="gSaved" inputmode="decimal" value="${g.saved}">
-   <label>Per maand opzij</label><input id="gMonthly" inputmode="decimal" value="${g.monthly}">
+   ${sp.length?`<label>Gekoppeld aan spaarrekening</label><select id="gAcct" onchange="$('gManual').style.display=this.value?'none':''"><option value="">Niet gekoppeld, zelf bijhouden</option>${sp.map(a=>`<option value="${a.id}" ${g.acct===a.id?'selected':''}>${esc(a.name)} (${fmt0(acctBalance(a))})</option>`).join('')}</select>`:''}
+   <div id="gManual" style="${g.acct?'display:none':''}"><label>Al gespaard</label><input id="gSaved" inputmode="decimal" value="${g.saved}">
+   <label>Per maand opzij</label><input id="gMonthly" inputmode="decimal" value="${g.monthly}"></div>
    <label>Wanneer wil je het halen? (optioneel)</label><input id="gDead" type="date" value="${g.deadline||''}">
    <div class="note">Het maandbedrag gaat in je plan van je inkomen af, net als je vaste lasten.</div>
    ${btns(`saveGoal('${id||''}')`,id?`delGoal('${id}')`:'')}`)}
-function saveGoal(id){const n=val('gName');if(!n)return;const d={name:n,icon:val('gIcon'),target:num('gTarget'),saved:num('gSaved'),monthly:num('gMonthly'),deadline:val('gDead')};
+function saveGoal(id){const n=val('gName');if(!n)return;const ac=$('gAcct')?val('gAcct'):'';const d={name:n,icon:val('gIcon'),target:num('gTarget'),saved:num('gSaved'),monthly:num('gMonthly'),deadline:val('gDead'),acct:ac};if(ac){d.monthly=0;const A=S.assets.find(a=>a.id===ac);if(A)d.saved=Math.round(acctBalance(A)*100)/100}
   if(id)Object.assign(S.goals.find(g=>g.id===id),d);else S.goals.push({id:uid(),...d});snapshotWorth();closeSheet();markMain()}
 function delGoal(id){S.goals=S.goals.filter(g=>g.id!==id);snapshotWorth();closeSheet();markMain()}
 function openDeposit(id){const g=S.goals.find(g=>g.id===id);
@@ -1649,7 +1665,7 @@ Categorieën:\n${opts}\n\nTransacties (nummer | omschrijving | bedrag):\n${todo.
   }catch(e){toast(e&&e.code==='rate_limited'?'Even te druk, probeer het zo opnieuw':'Indelen lukte niet. Kies de categorieën zelf.')}
   renderImport();
 }
-function doImport(){
+function doImport(){safetyBackup();
   const on=IMP.filter(r=>r.on);if(!on.length){toast('Niets geselecteerd');return}
   const fallback=(S.cats.find(c=>/overig/i.test(c.name))||S.cats[0]||{}).id||null;
   const keys=new Set(['main']);S.rules=S.rules||{};
@@ -2023,6 +2039,33 @@ const SLOT=['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)','var(--c
 function catColor(cid){if(cid==='_vast')return 'var(--cfix)';const i=S.cats.findIndex(c=>c.id===cid);return i>=0?SLOT[i%SLOT.length]:'var(--c8)'}
 function spaarHit(a,t){if(a.cat&&(t.cat===a.cat||(Array.isArray(t.splits)&&t.splits.some(x=>x.cat===a.cat))))return true;
   if(a.match){const m=a.match.toLowerCase().replace(/\s/g,'');const h=((t.desc||'')+' '+(t.note||'')).toLowerCase().replace(/\s/g,'');if(m.length>=3&&h.includes(m))return true}return false}
+/* ---------- saldocontrole ---------- */
+const r2=x=>Math.round(x*100)/100;
+function reconCheck(a,bal,bdate){if(!a.updated||!(bdate>a.updated)||isNaN(bal))return false;let exp=+a.amount||0;
+  allTx().forEach(t=>{if(t.date>a.updated&&t.date<=bdate)exp+=t.type==='in'?t.amount:-t.amount});const diff=r2(bal-exp);
+  const prev=S.recon;S.recon=Math.abs(diff)<.01?{ok:true,at:bdate}:{at:bdate,from:a.updated,diff,bank:bal,exp:r2(exp)};
+  if(!S.recon.ok)once('recon-'+bdate,()=>notify('Saldo klopt niet helemaal',`Stuiver komt ${fmt(Math.abs(diff))} ${diff>0?'lager':'hoger'} uit dan de bank. Tik om te zien waar het zit.`),true);
+  return JSON.stringify(prev)!==JSON.stringify(S.recon)}
+function reconSuspects(R){const from=R.from,to=R.at,tx=allTx().filter(t=>t.date>from&&t.date<=to),out=[];const amt=Math.abs(R.diff);
+  // dubbele
+  const seen={};tx.forEach(t=>{const k=t.date+'|'+t.type+'|'+t.amount.toFixed(2);(seen[k]=seen[k]||[]).push(t)});
+  Object.values(seen).forEach(l=>{if(l.length>1)l.slice(1).forEach(t=>out.push({t,why:'Mogelijk dubbel: zelfde dag en bedrag'}))});
+  // handmatig toegevoegd
+  tx.forEach(t=>{if(!t.bank&&!t.imp)out.push({t,why:'Met de hand toegevoegd, niet van de bank'})});
+  tx.forEach(t=>{if(!t.bank&&t.imp)out.push({t,why:'Uit een bestand geïmporteerd'})});
+  // bedrag gelijk aan verschil
+  tx.forEach(t=>{if(Math.abs(t.amount-amt)<.01&&!out.some(o=>o.t.id===t.id))out.push({t,why:'Bedrag is precies het verschil'})});
+  return out.slice(0,25)}
+function openRecon(){const R=S.recon;if(!R||R.ok){toast('Het saldo klopt met de bank');return}const L=reconSuspects(R);
+  openSheet(`<h3>Saldo vergelijken</h3>
+  <div class="item"><div class="grow"><div class="t">Volgens de bank</div><div class="s">${new Date(R.at).toLocaleDateString('nl-NL',{day:'numeric',month:'long'})}</div></div><b>${fmt(R.bank)}</b></div>
+  <div class="item"><div class="grow"><div class="t">Volgens Stuiver</div><div class="s">startsaldo plus transacties</div></div><b>${fmt(R.exp)}</b></div>
+  <div class="item"><div class="grow"><div class="t" style="font-weight:700">Verschil</div></div><b style="color:var(--bad)">${fmt(R.diff)}</b></div>
+  <p class="s" style="margin-top:10px">${R.diff<0?'Stuiver rekent met meer uitgaven of minder inkomsten dan de bank. Vaak is een transactie dubbel of met de hand toegevoegd.':'Stuiver mist uitgaven of telt inkomsten dubbel niet mee. Vaak ontbreekt een transactie van vóór de koppeling.'}</p>
+  ${L.length?`<h3 style="margin-top:14px">Kijk hier eerst naar</h3>${L.map(o=>`<div class="item" onclick="closeSheet();openTx('${o.t.id}')"><div class="grow"><div class="t">${esc(o.t.desc||'')}</div><div class="s">${o.t.date} · ${o.why}</div></div><b class="${o.t.type==='in'?'tx-in':'tx-out'}">${o.t.type==='in'?'+':'−'}${fmt(o.t.amount)}</b></div>`).join('')}`:'<div class="note">Geen verdachte transacties gevonden. Mogelijk mist er een transactie van vóór de koppeling.</div>'}
+  <div class="actions"><button class="ghost" onclick="closeSheet()">Sluiten</button><button class="btn" onclick="acceptRecon()">Opgelost</button></div>
+  <div class="note">Het saldo in Stuiver volgt altijd de bank. Dit verschil betekent wel dat je uitgaven per categorie een fout kunnen bevatten.</div>`)}
+function acceptRecon(){S.recon={ok:true,at:(S.recon||{}).at};closeSheet();markMain();render();toast('Melding weggehaald')}
 function acctBalance(a){const since=a.updated||'0000';let b=+a.amount||0;
   if(a.type==='betaal'){allTx().forEach(t=>{if(t.date>since)b+=t.type==='in'?t.amount:-t.amount});return b}
   if(a.type==='spaar'&&(a.cat||a.match)){const seen=new Set(a.updIds||[]);allTx().forEach(t=>{if((t.date>since||(t.date===since&&!seen.has(t.id)))&&spaarHit(a,t))b+=t.type==='out'?t.amount:-t.amount});return b}
@@ -2267,7 +2310,7 @@ async function processBankTx(){if(!SB.hid)return;
   try{const {data:ac}=await SB.c.from('bank_accounts').select('uid,name,balance,balance_date').eq('household_id',SB.hid);
     const withBal=(ac||[]).filter(a=>a.balance!=null);if(withBal.length){const b=withBal[0];let a=S.assets.find(x=>x.type==='betaal');
       if(!a){a={id:uid(),type:'betaal',name:'Gezamenlijke rekening',amount:0};S.assets.push(a)}
-      if(!a.updated||b.balance_date>=a.updated){if(a.amount!==+b.balance||a.updated!==b.balance_date){a.amount=+b.balance;a.updated=b.balance_date;a.viaBank=true;keys.add('main')}}}}catch(e){}
+      if(!a.updated||b.balance_date>=a.updated){if(reconCheck(a,+b.balance,b.balance_date))keys.add('main');if(a.amount!==+b.balance||a.updated!==b.balance_date){a.amount=+b.balance;a.updated=b.balance_date;a.viaBank=true;keys.add('main')}}}}catch(e){}
   if(keys.size){mark(...keys);if(n)toast(`${n} nieuwe transactie${n===1?'':'s'} van de bank`);if(n>=15&&reviewList().length)setTimeout(openReview,1200)}}
 function bankSettings(){
   if(BANK===null){BANK={loading:true};bankCall('status').then(d=>{BANK=d;if(view==='instellingen')renderSettings()}).catch(e=>{BANK={err:e.message};if(view==='instellingen')renderSettings()});}
@@ -2328,10 +2371,11 @@ function isPending(t){return !!(t.review||(t.type==='out'&&!t.fixedId&&!(Array.i
 function reviewList(){const since=ymd(new Date(Date.now()-120*864e5));return allTx().filter(t=>isPending(t)&&t.date>=since).sort((a,b)=>b.date.localeCompare(a.date))}
 function renderReviewBanner(){const el=$('reviewBanner');if(!el)return;const r=reviewList();
   el.innerHTML=r.length?`<div class="card" style="margin-top:12px;display:flex;align-items:center;gap:12px;border-color:var(--warn)"><div class="ico">🏷️</div><div class="grow"><div class="t">${r.length} transactie${r.length===1?'':'s'} nog indelen</div><div class="s">Van de bank, zonder categorie</div></div><button class="btn" style="padding:8px 12px" onclick="openReview()">Indelen</button></div>`:''}
-function openReview(){const r=reviewList();if(!r.length){closeSheet();toast('Alles is ingedeeld 🎉');return}
+function openReview(){SW.on=false;let m='swipe';try{m=localStorage.getItem('stuiver-revmode')||'swipe'}catch(e){}if(m==='swipe')return openSwipe();openReviewList()}
+function openReviewList(){SW.on=false;try{localStorage.setItem('stuiver-revmode','list')}catch(e){}const r=reviewList();if(!r.length){closeSheet();toast('Alles is ingedeeld 🎉');return}
   const g={};r.forEach(t=>{const k=t.type+'|'+(normName(t.desc)||t.desc);(g[k]=g[k]||{name:t.desc,type:t.type,items:[],tot:0}).items.push(t);g[k].tot+=t.amount});
   const groups=Object.values(g).sort((a,b)=>b.items.length-a.items.length||b.tot-a.tot);
-  openSheet(`<h3>Indelen</h3><button class="outline" style="width:100%;margin-bottom:10px" onclick="autoIndelen()">✨ Automatisch indelen wat Stuiver herkent</button><div class="note" style="margin-top:0">${r.length} transacties van ${groups.length} winkels of namen. Kies per regel een categorie. Dat geldt dan voor alle transacties van die naam, en Stuiver onthoudt het voor de volgende keer.</div>
+  openSheet(`<h3>Indelen</h3><div class="btnrow" style="margin-bottom:10px"><button class="btn" onclick="openSwipe()">⚡ Kaart voor kaart</button><button class="outline" onclick="autoIndelen()">✨ Automatisch</button></div><div class="note" style="margin-top:0">${r.length} transacties van ${groups.length} winkels of namen. Kies per regel een categorie. Dat geldt dan voor alle transacties van die naam, en Stuiver onthoudt het voor de volgende keer.</div>
     <div class="s" style="margin:8px 0">Nog ${groups.length} te gaan · <span class="dir in">↓ Ontvangen</span>geld erbij <span class="dir out" style="margin-left:8px">↑ Betaald</span>geld eraf</div>
     ${groups.slice(0,30).map(x=>`<div class="item tx-${x.type==='in'?'in':'out'}" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><div class="grow"><div class="t">${esc(x.name)}</div><div class="s">${x.type==='in'?'<span class="dir in">↓ Ontvangen</span>':'<span class="dir out">↑ Betaald</span>'}${x.items.length}× · laatst ${dShort(pd(x.items[0].date))}${x.items[0].note?' · '+esc(x.items[0].note.slice(0,50)):''}</div></div><div class="amt ${x.type==='in'?'in':'out'}">${x.type==='in'?'+':'−'}${fmt0(x.tot).replace('−','')}</div></div>
       <select style="margin-top:6px;padding:8px 10px;font-size:14px" onchange="setReviewCat('${x.items[0].id}',this.value)">${x.type==='in'?`<option value="">Kies categorie…</option>${S.cats.filter(c=>c.kind==='in').map(c=>`<option value="c:${c.id}">${c.icon} ${esc(c.name)}</option>`).join('')}<optgroup label="Terug van spaarrekening">${S.cats.filter(c=>c.kind==='spaar').map(c=>`<option value="c:${c.id}">${c.icon} ${esc(c.name)}</option>`).join('')}</optgroup>`:catOptions('')}</select></div>`).join('')}
@@ -2344,7 +2388,42 @@ function setReviewCat(id,v){if(!v)return;const f=findTx(id);if(!f)return;
   if(v.startsWith('c:')&&catKind(v.slice(2))==='spaar'){const a=S.assets.find(a=>a.type==='spaar'&&a.cat===v.slice(2));const nr=((f.t.desc||'')+' '+(f.t.note||'')).match(/\b[A-Z]\d{8}\b/);if(a&&!a.match&&nr){a.match=nr[0];markMain()}}const n=normName(f.t.desc),ty=f.t.type;S.rules=S.rules||{};if(n)S.rules[ty==='in'?'in:'+n:n]=ty==='in'?v.slice(2):v;const keys=new Set(['main']);
   const apply=t=>{delete t.review;if(v.startsWith('f:')){t.fixedId=v.slice(2);t.cat=null}else t.cat=v.slice(2)};
   for(const m in TX)TX[m].forEach(t=>{if(t.id===id||(isPending(t)&&t.type===ty&&normName(t.desc)===n)){apply(t);keys.add('tx-'+m)}});
-  mark(...keys);setTimeout(()=>{if($('sheetBg').classList.contains('open'))openReview()},50)}
+  mark(...keys);setTimeout(()=>{if($('sheetBg').classList.contains('open')&&!SW.on)openReviewList()},50)}
+/* ---------- snel indelen: kaart voor kaart ---------- */
+const SW={on:false,g:[],i:0,undo:[],done:0};
+function swGroups(){const r=reviewList(),g={};r.forEach(t=>{const k=t.type+'|'+(normName(t.desc)||t.desc);(g[k]=g[k]||{name:t.desc,type:t.type,items:[],tot:0}).items.push(t);g[k].tot+=t.amount});
+  return Object.values(g).sort((a,b)=>b.items.length-a.items.length||b.tot-a.tot)}
+function swLabel(v){if(v.startsWith('f:')){const f=S.fixed.find(f=>f.id===v.slice(2));return f?['📅',f.name]:null}const c=S.cats.find(c=>c.id===v.slice(2));return c?[c.icon,c.name]:null}
+function swSug(x){const out=[],add=v=>{if(v&&!out.includes(v)&&swLabel(v))out.push(v)};const d=x.name,t0=x.items[0];
+  if(x.type==='in'){const g=guessInCat(d);if(g)add('c:'+g)}else{let g=guessCat(d);if(!g&&t0.note)g=guessCat(t0.note);add(g);add(guessFromHistory(d))}
+  const since=ymd(new Date(Date.now()-120*864e5)),cnt={};allTx().forEach(t=>{if(t.type!==x.type||t.review||t.date<since)return;const v=t.fixedId?null:t.cat?'c:'+t.cat:null;if(v&&(x.type==='in'||catKind(t.cat)==='uit'))cnt[v]=(cnt[v]||0)+1});
+  Object.entries(cnt).sort((a,b)=>b[1]-a[1]).forEach(([v])=>{if(out.length<3)add(v)});
+  if(out.length<3)S.cats.filter(c=>x.type==='in'?c.kind==='in':(c.kind||'uit')==='uit').forEach(c=>{if(out.length<3)add('c:'+c.id)});return out.slice(0,3)}
+function openSwipe(){try{localStorage.setItem('stuiver-revmode','swipe')}catch(e){}SW.on=true;SW.g=swGroups();SW.i=0;SW.undo=[];SW.done=0;SW.total=SW.g.length;if(!SW.g.length){SW.on=false;closeSheet();toast('Alles is ingedeeld 🎉');return}renderSwipe()}
+function renderSwipe(){const x=SW.g[SW.i];if(!x){SW.on=false;openSheet(`<h3>Klaar 🎉</h3><p class="s">${SW.done} winkel${SW.done===1?'':'s'} of namen ingedeeld. Stuiver onthoudt je keuzes voor de volgende keer.</p>${SW.g.length>SW.done?`<div class="note">${SW.g.length-SW.done} heb je overgeslagen. Die blijven in de lijst staan.</div>`:''}<div class="actions"><button class="btn" onclick="closeSheet();render()">Sluiten</button></div>`);return}
+  const sg=swSug(x),pct=Math.round(SW.i/SW.total*100),t0=x.items[0];
+  openSheet(`<div style="display:flex;justify-content:space-between;align-items:center"><h3 style="margin:0">Snel indelen</h3><span class="s">${SW.i+1} van ${SW.total}</span></div>
+  <div class="bar" style="margin:10px 0 14px"><i style="width:${pct}%"></i></div>
+  <div id="swCard" class="card" style="text-align:center;padding:22px 16px;touch-action:pan-y;transition:transform .2s,opacity .2s;user-select:none">
+    <div class="s">${x.type==='in'?'<span class="dir in">↓ Ontvangen</span>':'<span class="dir out">↑ Betaald</span>'} ${x.items.length}× · laatst ${dShort(pd(t0.date))}</div>
+    <div style="font-size:21px;font-weight:700;margin:8px 0 4px;word-break:break-word">${esc(x.name)}</div>
+    <div class="amt ${x.type==='in'?'in':'out'}" style="font-size:26px;font-weight:700">${x.type==='in'?'+':'−'}${fmt(x.tot).replace('−','')}</div>
+    ${t0.note?`<div class="s" style="margin-top:6px">${esc(t0.note.slice(0,80))}</div>`:''}
+    ${sg[0]?`<div class="s" style="margin-top:12px">Swipe naar rechts voor <b>${esc(swLabel(sg[0]).join(' '))}</b> · naar links om over te slaan</div>`:''}
+  </div>
+  <div style="display:grid;gap:8px;margin-top:12px">${sg.map((v,i)=>{const l=swLabel(v);return `<button class="${i?'outline':'btn'}" style="padding:14px;font-size:16px;text-align:left" onclick="swPick('${v}')">${l[0]} ${esc(l[1])}</button>`}).join('')}
+  <select style="padding:12px" onchange="if(this.value)swPick(this.value)">${x.type==='in'?`<option value="">Andere categorie…</option>${S.cats.filter(c=>c.kind==='in'||c.kind==='spaar').map(c=>`<option value="c:${c.id}">${c.icon} ${esc(c.name)}</option>`).join('')}`:catOptions('').replace('Kies categorie…','Andere categorie…')}</select></div>
+  <div class="actions"><button class="ghost" onclick="swUndo()" ${SW.undo.length?'':'disabled'}>↶ Terug</button><button class="ghost" onclick="swSkip()">Overslaan</button><button class="ghost" onclick="openReviewList()">Lijst</button></div>`);
+  swBind(sg[0])}
+function swBind(first){const el=$('swCard');if(!el)return;let x0=null,dx=0;
+  el.addEventListener('touchstart',e=>{x0=e.touches[0].clientX;dx=0;el.style.transition='none'},{passive:true});
+  el.addEventListener('touchmove',e=>{if(x0==null)return;dx=e.touches[0].clientX-x0;el.style.transform=`translateX(${dx}px) rotate(${dx/25}deg)`;el.style.opacity=String(1-Math.min(.6,Math.abs(dx)/400))},{passive:true});
+  el.addEventListener('touchend',()=>{el.style.transition='';if(dx>90&&first){el.style.transform='translateX(120%) rotate(12deg)';setTimeout(()=>swPick(first),150)}else if(dx<-90){el.style.transform='translateX(-120%) rotate(-12deg)';setTimeout(swSkip,150)}else{el.style.transform='';el.style.opacity=''}x0=null})}
+function swPick(v){const x=SW.g[SW.i];if(!x)return;SW.undo.push({i:SW.i,snap:x.items.map(t=>({id:t.id,cat:t.cat,fixedId:t.fixedId,review:t.review})),rule:normName(x.name),type:x.type,prevRule:(S.rules||{})[x.type==='in'?'in:'+normName(x.name):normName(x.name)]});
+  setReviewCat(x.items[0].id,v);SW.done++;SW.i++;renderSwipe()}
+function swSkip(){SW.undo.push({i:SW.i,skip:true});SW.i++;renderSwipe()}
+function swUndo(){const u=SW.undo.pop();if(!u)return;SW.i=u.i;if(!u.skip){SW.done--;const keys=new Set(['main']);u.snap.forEach(o=>{const f=findTx(o.id);if(!f)return;f.t.cat=o.cat;if(o.fixedId)f.t.fixedId=o.fixedId;else delete f.t.fixedId;if(o.review)f.t.review=o.review;keys.add('tx-'+f.m)});
+    const rk=u.type==='in'?'in:'+u.rule:u.rule;if(u.prevRule==null)delete S.rules[rk];else S.rules[rk]=u.prevRule;mark(...keys)}renderSwipe()}
 
 /* ---------- categorieën beheren ---------- */
 const KIND_LBL={in:['Inkomsten','var(--good)'],uit:['Uitgaven','var(--bad)'],spaar:['Sparen','var(--c1)'],beleg:['Beleggen','var(--c7)']};
@@ -2438,7 +2517,7 @@ function ensureBelasting(){if(S.belastingV1)return;if(VAULT.on&&!VAULT.key)retur
 function ensureRulesReset(){if(S.rulesResetV1)return;if(VAULT.on&&!VAULT.key)return;S.rules={};S.rulesResetV1=true;markMain()}
 function confirmRulesReset(){openSheet(`<h3>Geleerde regels wissen?</h3><p class="s">Stuiver vergeet welke winkel bij welke categorie hoort. Je transacties blijven staan.</p><div class="actions"><button class="ghost" onclick="closeSheet()">Annuleren</button><button class="btn" style="background:var(--bad)" onclick="S.rules={};markMain();closeSheet();toast('Regels gewist')">Wissen</button></div>`)}
 function confirmWipeAllTx(){openSheet(`<h3>Alle transacties wissen?</h3><p class="s">Alle transacties worden verwijderd, op al je apparaten. Categorieën, budgetten en instellingen blijven staan. Daarna kun je alles opnieuw van de bank ophalen.</p><label class="row" style="gap:8px;margin-top:8px"><input type="checkbox" id="wRules" checked> Ook geleerde indeel-regels wissen</label><div class="actions"><button class="ghost" onclick="closeSheet()">Annuleren</button><button class="btn" style="background:var(--bad)" onclick="doWipeAllTx()">Wissen</button></div>`)}
-async function doWipeAllTx(){const rules=$('wRules')&&$('wRules').checked;closeSheet();
+async function doWipeAllTx(){const rules=$('wRules')&&$('wRules').checked;closeSheet();await safetyBackup();
   if(!SB.hid){Object.keys(TX).forEach(m=>TX[m].forEach(t=>markDeleted(m,t.id)));const ks=Object.keys(TX).map(m=>'tx-'+m);Object.keys(TX).forEach(m=>TX[m]=[]);if(rules)S.rules={};mark('main',...ks);toast('Transacties gewist');return}
   try{try{await SB.c.rpc('backup_now',{hid:SB.hid})}catch(e){}
     const {data,error}=await SB.c.rpc('reset_all_tx',{hid:SB.hid});if(error)throw error;
@@ -2626,7 +2705,7 @@ function dgMerge(parsed){const G=S.degiro=Object.assign(dgDefault(),S.degiro||{}
   let a=S.assets.find(a=>a.src==='degiro')||S.assets.find(a=>a.type==='beleg'&&/degiro/i.test(a.name));
   if(G.val||G.dep){if(!a){a={id:uid(),type:'beleg',name:'DeGiro',amount:0,invested:0};S.assets.push(a)}a.src='degiro';if(G.val)a.amount=Math.round(G.val*100)/100;if(G.dep)a.invested=Math.round((G.dep-G.wd)*100)/100;a.updated=G.upd||today()}
   snapshotWorth();markMain();return res}
-function dgImport(){const i=document.createElement('input');i.type='file';i.multiple=true;i.onchange=async()=>{const fs=[...i.files];if(!fs.length)return;
+function dgImport(){const i=document.createElement('input');i.type='file';i.multiple=true;i.onchange=async()=>{const fs=[...i.files];if(!fs.length)return;safetyBackup();
   if(typeof XLSX==='undefined'){toast('Excel-lezer niet geladen');return}
   const parsed=[],bad=[];for(const f of fs){try{const p=dgParse(await dgReadFile(f));if(p)parsed.push(p);else bad.push(f.name)}catch(e){bad.push(f.name)}}
   const res=dgMerge(parsed);render();
@@ -2657,6 +2736,27 @@ function dgForecastHTML(G){const F=dgForecast(G);if(!F.length)return '';const M=
    <div class="kv"><span>Verwacht totaal</span><span class="amt pos">≈ ${fmt(tot)}</span></div>
    <div style="display:flex;align-items:flex-end;gap:4px;height:100px;margin:10px 0 4px">${months.map(m=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><div style="font-size:9px;color:var(--muted)">${m.v?Math.round(m.v):''}</div><div style="width:100%;max-width:22px;height:${Math.max(m.v?3:0,m.v/mx*70)}px;border-radius:4px 4px 0 0;background:var(--good);opacity:.55;border:1px dashed var(--good)"></div><div style="font-size:9px;color:var(--muted);margin-top:3px">${m.lbl}</div></div>`).join('')}</div>
    ${months.filter(m=>m.items.length).map(m=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div class="kv"><b style="text-transform:capitalize">${m.lbl} ${m.y}</b><span class="amt pos">≈ ${fmt(m.v)}</span></div>${m.items.map(e=>`<div class="kv s"><span>${esc(e.p||e.isin)} · rond ${dShort(pd(e.d))}</span><span>${fmt(e.eur)}</span></div>`).join('')}</div>`).join('')}`}
+/* ---------- dividendbelasting per land ---------- */
+const DG_LAND={NL:['Nederland',0],US:['Verenigde Staten',3],DE:['Duitsland',4],BE:['België',3],FR:['Frankrijk',3],CH:['Zwitserland',3],DK:['Denemarken',3],SE:['Zweden',5],NO:['Noorwegen',3],FI:['Finland',5],GB:['Verenigd Koninkrijk',0],IE:['Ierland',4],ES:['Spanje',4],IT:['Italië',4],AT:['Oostenrijk',5],CA:['Canada',2],LU:['Luxemburg',0],PT:['Portugal',2],JE:['Jersey',0],BM:['Bermuda',0],CW:['Curaçao',0]};
+let DGTY=null;
+function dgTax(G,y){const L=(G.div||[]).filter(e=>e.d.startsWith(String(y)));const by={};
+  L.forEach(e=>{const c=(e.isin||'').slice(0,2).toUpperCase()||'??';const o=by[c]=by[c]||{c,g:0,t:0,n:0,first:e.d};o.g+=e.geur||0;o.t+=Math.max(0,(e.geur||0)-(e.eur||0));o.n++;if(e.d<o.first)o.first=e.d});
+  const rows=Object.values(by).map(o=>{const rate=o.g>0?o.t/o.g:0,nl=o.c==='NL';const cred=nl?o.t:Math.min(o.t,.15*o.g);const back=nl?0:Math.max(0,o.t-.15*o.g);
+    const yrs=(DG_LAND[o.c]||[])[1]||3;return{...o,rate,cred,back:back>=1?back:0,deadline:+String(y)+yrs,name:(DG_LAND[o.c]||[o.c])[0]}}).sort((a,b)=>b.t-a.t);
+  return{rows,g:rows.reduce((a,r)=>a+r.g,0),t:rows.reduce((a,r)=>a+r.t,0),nl:rows.filter(r=>r.c==='NL').reduce((a,r)=>a+r.t,0),fo:rows.filter(r=>r.c!=='NL').reduce((a,r)=>a+r.cred,0),back:rows.reduce((a,r)=>a+r.back,0)}}
+function dgTaxHTML(G){const ys=[...new Set((G.div||[]).map(e=>+e.d.slice(0,4)))].sort((a,b)=>b-a);if(!ys.length)return '';const y=DGTY&&ys.includes(DGTY)?DGTY:(ys.includes(new Date().getFullYear()-1)?new Date().getFullYear()-1:ys[0]);const T=dgTax(G,y);if(!T.t)return '';
+  const us=T.rows.find(r=>r.c==='US'&&r.rate>.16);
+  return `<h3 style="margin-top:22px">🧾 Dividendbelasting</h3><div class="card">
+   <div class="seg" style="margin-bottom:10px">${ys.slice(0,5).map(x=>`<button class="${x===y?'on':''}" onclick="DGTY=${x};renderDegiro()">${x}</button>`).join('')}</div>
+   <div class="kv"><span>Bruto dividend</span><span class="amt">${fmt(T.g)}</span></div>
+   <div class="kv"><span>Ingehouden</span><span class="amt">${fmt(T.t)}</span></div>
+   <div class="kv"><span>In je aangifte: Nederlandse dividendbelasting</span><b class="amt">${fmt(T.nl)}</b></div>
+   <div class="kv"><span>In je aangifte: buitenlandse bronbelasting</span><b class="amt">${fmt(T.fo)}</b></div>
+   ${T.back?`<div class="kv" style="color:var(--good)"><span>Zelf terug te vragen in het buitenland</span><b class="amt">${fmt(T.back)}</b></div>`:''}
+   <table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:10px"><tr class="s"><td>Land</td><td style="text-align:right">Bruto</td><td style="text-align:right">Ingeh.</td><td style="text-align:right">%</td></tr>
+   ${T.rows.map(r=>`<tr style="border-top:1px solid var(--line)"><td style="padding:6px 0">${esc(r.name)}${r.back?`<div class="s" style="color:var(--good)">${fmt(r.back)} terugvragen, uiterlijk eind ${r.deadline}</div>`:''}</td><td style="text-align:right" class="amt">${fmt0(r.g)}</td><td style="text-align:right" class="amt">${fmt0(r.t)}</td><td style="text-align:right;${r.rate>.155&&r.c!=='NL'?'color:var(--bad);font-weight:700':''}">${Math.round(r.rate*100)}%</td></tr>`).join('')}</table>
+   ${us?`<div class="note" style="border-color:var(--bad)">⚠️ Op Amerikaans dividend is ${Math.round(us.rate*100)}% ingehouden in plaats van 15%. Controleer bij DeGiro of je W-8BEN-formulier geldig is.</div>`:''}
+   <div class="note">Nederlandse dividendbelasting is volledig verrekenbaar. Buitenlandse bronbelasting verreken je tot 15% van het bruto dividend, en vermindert je box 3-belasting tot hooguit nul. Wat een land boven het verdragstarief van 15% inhoudt, vraag je daar zelf terug. Termijnen zijn een indicatie, check ze per land. Geen belastingadvies.</div></div>`}
 function dgDividendHTML(G){const div=(G.div||[]).slice().sort((a,b)=>a.d.localeCompare(b.d));if(!div.length)return '<h3 style="margin-top:16px">💶 Dividend</h3><div class="note">Nog geen dividend gevonden. Lees het Rekeningoverzicht in.</div>';
   const now=new Date(),Y=now.getFullYear(),ys=String(Y),md=ymd(now).slice(5);const M=['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
   const cut=ymd(new Date(Date.now()-365*864e5));const tot=dgSum(div),tax=div.reduce((a,e)=>a+(e.geur-e.eur),0);
@@ -2717,6 +2817,7 @@ function dgDividendHTML(G){const div=(G.div||[]).slice().sort((a,b)=>a.d.localeC
    <h3 style="margin-top:18px">Per jaar</h3><div class="s" style="margin-bottom:6px">Tik op een jaar voor de uitkeringen. Het gestippelde deel is wat er dit jaar nog verwacht wordt.</div>${svg}
    <h3 style="margin-top:18px">Per maand</h3><div class="s" style="margin-bottom:6px">Hoe donkerder, hoe meer dividend. Tik op een vakje voor de uitkeringen.</div>${heat}
    <h3 style="margin-top:18px">Opgebouwd</h3><div class="s" style="margin-bottom:6px">Al je dividend bij elkaar opgeteld.</div>${cumSvg}
+   ${dgTaxHTML(G)}
    ${dgForecastHTML(G)}
    <h3 style="margin-top:18px">Per aandeel</h3>${perHtml}`}
 
@@ -2997,8 +3098,9 @@ function autoIndelen(){HIST=null;let n=0;const ks=new Set();for(const m in TX)TX
     if(g&&g.startsWith('c:')&&S.cats.some(c=>c.id===g.slice(2))&&!/^overig$/i.test((S.cats.find(c=>c.id===g.slice(2))||{}).name||'')){t.cat=g.slice(2);delete t.review;n++;ks.add('tx-'+m)}else if(g&&g.startsWith('f:')){t.fixedId=g.slice(2);delete t.review;n++;ks.add('tx-'+m)}});
   if(n){mark(...ks)}toast(n?`${n} transacties automatisch ingedeeld`:'Niets gevonden om automatisch in te delen');if(n)setTimeout(openReview,300)}
 /* budgetvoorstel */
-function budgetSuggest(){const out=[];const per=[-1,-2,-3].map(o=>periodAt(o)).filter(P=>txIn(P).length);if(!per.length)return out;
-  S.cats.filter(c=>(c.kind||'uit')==='uit').forEach(c=>{const avg=per.reduce((s,P)=>s+spentCat(txIn(P),c.id),0)/per.length;if(avg<5&&!(+c.budget))return;const step=avg<50?5:avg<300?10:25;const sug=Math.ceil(avg/step)*step;out.push({c,avg,sug})});
+function budgetSuggest(){const out=[];const per=[-1,-2,-3].map(o=>txIn(periodAt(o))).filter(l=>l.length);if(!per.length)return out;
+  const agg={};per.forEach(l=>l.forEach(t=>{if(t.type!=='out'||t.fixedId)return;catAmounts(t).forEach(x=>{agg[x.cat]=(agg[x.cat]||0)+(+x.amount||0)})}));
+  S.cats.filter(c=>(c.kind||'uit')==='uit').forEach(c=>{const avg=(agg[c.id]||0)/per.length;if(avg<5&&!(+c.budget))return;const step=avg<50?5:avg<300?10:25;const sug=Math.ceil(avg/step)*step;out.push({c,avg,sug})});
   return out.sort((a,b)=>b.avg-a.avg)}
 function openBudgetSuggest(){const L=budgetSuggest();if(!L.length){toast('Nog te weinig gegevens: wacht tot er een volle periode is');return}
   openSheet(`<h3>Budgetten voorstellen</h3><p class="s">Op basis van wat jullie de afgelopen ${Math.min(3,[-1,-2,-3].filter(o=>txIn(periodAt(o)).length).length)} periodes gemiddeld uitgaven, naar boven afgerond. Vink uit wat je niet wilt.</p>
@@ -3024,15 +3126,32 @@ function openCleanCats(){const {plan,unused}=cleanPlan();if(!plan.length&&!unuse
    ${plan.map((p,i)=>`<label class="chk" style="display:flex;gap:10px;padding:7px 0;align-items:flex-start"><input type="checkbox" id="cl${i}" checked><span><b>${p.icon} ${esc(p.name)}</b><br><span class="s">wordt één met: ${p.from.map(c=>esc(c.name)).join(', ')}</span></span></label>`).join('')}
    ${unused.length?`<label class="chk" style="display:flex;gap:10px;padding:7px 0;align-items:flex-start"><input type="checkbox" id="clU" checked><span><b>🗑️ ${unused.length} ongebruikte categorieën weghalen</b><br><span class="s">${unused.map(c=>esc(c.name)).join(', ')}</span></span></label>`:''}
    <div class="actions"><button class="ghost" onclick="closeSheet()">Annuleren</button><button class="btn" onclick="doCleanCats()">Opruimen</button></div>`)}
-function doCleanCats(){const {plan,unused}=cleanPlan();const keys=new Set(['main']);let n=0;
+function doCleanCats(){safetyBackup();const {plan,unused}=cleanPlan();const keys=new Set(['main']);let n=0;
   plan.forEach((p,i)=>{const cb=$('cl'+i);if(!cb||!cb.checked)return;p.tgt.name=p.name;p.tgt.icon=p.icon;p.from.forEach(c=>{p.tgt.budget=(+p.tgt.budget||0)+(+c.budget||0);moveCat(c.id,p.tgt.id).forEach(k=>keys.add(k));S.assets.forEach(a=>{if(a.cat===c.id)a.cat=p.tgt.id});S.cats=S.cats.filter(x=>x.id!==c.id);n++})});
   const u=$('clU');if(u&&u.checked){unused.forEach(c=>{S.cats=S.cats.filter(x=>x.id!==c.id);n++})}
   S.cleanDone=true;closeSheet();mark(...keys);render();toast(`Opgeruimd: nog ${S.cats.length} categorieën`)}
-function renderImproveBanners(){const el=$('improveBanner');if(!el)return;let h='';
+/* ---------- budgettempo ---------- */
+function paceData(){const P=periodAt(0),now=new Date(),tot=(P.e-P.s)/864e5,gone=Math.max(0,(now-P.s)/864e5),left=Math.max(0,tot-gone),f=Math.min(1,gone/tot);
+  if(gone<3)return[];const tx=txIn(P),prev=[-1,-2,-3].map(o=>periodAt(o)).map(Q=>({Q,tx:txIn(Q)})).filter(x=>x.tx.length);const out=[];
+  S.cats.filter(c=>(c.kind||'uit')==='uit').forEach(c=>{const b=catBudget(c,P);if(!(b>0))return;const sp=spentCat(tx,c.id);
+    // verwacht restant: hoe dit deel van de periode er normaal uitzag, anders lineair
+    let restFrac=1-f;if(prev.length){let a=0,tt=0;prev.forEach(x=>{const cut=new Date(+x.Q.s+(x.Q.e-x.Q.s)*f);x.tx.forEach(t=>{if(t.type!=='out'||t.fixedId)return;catAmounts(t).forEach(y=>{if(y.cat!==c.id)return;tt+=+y.amount||0;if(pd(t.date)>=cut)a+=+y.amount||0})})});if(tt>0)restFrac=a/tt}
+    const avg=prev.length?prev.reduce((s,x)=>s+spentCat(x.tx,c.id),0)/prev.length:0;
+    const proj=sp+(avg>0?avg*restFrac:sp/Math.max(f,.15)*(1-f));const over=proj-b;
+    if(sp>b||over>Math.max(10,b*.1))out.push({c,b,sp,proj:Math.round(proj),over:Math.round(over),left:Math.round(left),perDay:left>=1?Math.max(0,(b-sp)/left):0,already:sp>b})});
+  return out.sort((a,b)=>b.over-a.over)}
+function renderPaceWarn(){const el=$('paceWarn');if(!el)return;const L=paceData();if(!L.length){el.innerHTML='';return}
+  const P=periodAt(0);L.slice(0,3).forEach(x=>once('pace:'+pKey(P)+':'+x.c.id,()=>notify(`${x.c.name}: ${x.already?'budget is op':'op weg naar te veel'}`,x.already?`Al ${fmt0(x.sp-x.b)} over het budget, nog ${x.left} dagen.`:`In dit tempo ${fmt0(x.over)} over budget. Nog ${fmt0(x.b-x.sp)} voor ${x.left} dagen.`),true));
+  el.innerHTML=`<div class="card" style="margin:12px 0"><div class="t" style="font-weight:700;margin-bottom:6px">⏱️ Let op het tempo</div>${L.slice(0,4).map(x=>`<div class="item tap" onclick="openCatTx('${x.c.id}','cur')" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><div class="t">${x.c.icon} ${esc(x.c.name)}</div><b style="color:var(--bad)" class="amt">${x.already?'+'+fmt0(x.sp-x.b)+' over':'≈ +'+fmt0(x.over)}</b></div>
+    <div class="bar" style="margin:6px 0 4px"><i class="${x.already?'bad':'warn'}" style="width:${Math.min(100,x.sp/x.b*100)}%"></i></div>
+    <div class="s">${fmt0(x.sp)} van ${fmt0(x.b)} · ${x.already?`nog ${x.left} dagen te gaan`:x.perDay>0?`max <b>${fmt0(x.perDay)}</b>/dag om binnen te blijven`:'nu niets meer uitgeven'}</div></div>`).join('')}</div>`}
+function renderImproveBanners(){try{renderPaceWarn()}catch(e){console.error(e)}const el=$('improveBanner');if(!el)return;let h='';
   const be=bankExpiry();if(be)h+=`<div class="card" style="margin:12px 0;border:2px solid var(--bad)"><div class="t" style="font-weight:700">🏦 ${be.d<0?'De bankkoppeling is verlopen':`De bankkoppeling verloopt over ${be.d} dag${be.d===1?'':'en'}`}</div><div class="s">Koppel opnieuw, anders haalt Stuiver geen nieuwe transacties meer op.</div><div class="actions" style="margin-top:8px"><button class="btn" onclick="openBankPick()">Opnieuw koppelen</button></div></div>`;
   staleSavings().slice(0,2).forEach(a=>{h+=`<div class="card" style="margin:12px 0"><div class="t" style="font-weight:700">💰 Klopt het saldo van ${esc(a.name)} nog?</div><div class="s">Volgens Stuiver: <b>${fmt(acctBalance(a))}</b>. Vergelijk het even met de ING-app.</div><div class="actions" style="margin-top:8px"><button class="btn" onclick="confirmSaving('${a.id}')">Klopt</button><button class="outline" onclick="openAsset('${a.id}')">Aanpassen</button></div></div>`});
   if(!S.cleanDone&&S.cats.length>28&&cleanPlan().plan.length)h+=`<div class="card" style="margin:12px 0"><div class="t" style="font-weight:700">🧹 ${S.cats.length} categorieën is veel</div><div class="s">Stuiver kan overlappende categorieën samenvoegen. Dat maakt indelen en de taart een stuk overzichtelijker.</div><div class="actions" style="margin-top:8px"><button class="btn" onclick="openCleanCats()">Bekijken</button><button class="ghost" onclick="S.cleanDone=true;markMain();render()">Nee, dank je</button></div></div>`;
   if(!S.budgetSugDone&&budgetSuggest().length&&S.cats.filter(c=>(c.kind||'uit')==='uit'&&+c.budget>0).length<5)h+=`<div class="card" style="margin:12px 0"><div class="t" style="font-weight:700">🎯 Budgetten instellen?</div><div class="s">De meeste categorieën hebben nog geen budget. Stuiver kan ze voorstellen op basis van wat jullie normaal uitgeven.</div><div class="actions" style="margin-top:8px"><button class="btn" onclick="openBudgetSuggest()">Voorstel bekijken</button><button class="ghost" onclick="S.budgetSugDone=true;markMain();render()">Later</button></div></div>`;
+  if(S.recon&&!S.recon.ok&&Math.abs(S.recon.diff)>=1)h=`<div class="card" style="margin:12px 0;border:2px solid var(--warn,#f2c46b)"><div class="t" style="font-weight:700">🔎 Saldo wijkt ${fmt(Math.abs(S.recon.diff))} af van de bank</div><div class="s">Waarschijnlijk staat er een transactie dubbel in, of mist er een. Stuiver laat zien welke het kunnen zijn.</div><div class="actions" style="margin-top:8px"><button class="btn" onclick="openRecon()">Uitzoeken</button></div></div>`+h;
+  if(window.Android&&LOCK.mode==='off'&&!localStorage.getItem('stuiver-locksug')&&(()=>{try{return Android.deviceSecure()}catch(e){return false}})())h+=`<div class="card" style="margin:12px 0"><div class="t" style="font-weight:700">🔒 Beveilig Stuiver met je vingerafdruk</div><div class="s">Nu kan iedereen die je ontgrendelde telefoon pakt jullie financiën zien.</div><div class="actions" style="margin-top:8px"><button class="btn" onclick="localStorage.setItem('stuiver-locksug','1');setLockMode('device')">Aanzetten</button><button class="ghost" onclick="localStorage.setItem('stuiver-locksug','1');render()">Nee</button></div></div>`;
   el.innerHTML=h}
 /* ---------- jaaroverzicht ---------- */
 let JY=new Date().getFullYear();
@@ -3103,22 +3222,24 @@ function renderPriceChanges(){const el=$('priceBanner');if(!el)return;const L=pr
   el.innerHTML=L.length?`<div class="card" style="margin:12px 0;border:2px solid var(--warn,#c98500)"><div class="t" style="font-weight:700">⚠️ ${L.length===1?'Een vaste last is':L.length+' vaste lasten zijn'} van bedrag veranderd</div>${L.map(x=>`<div class="item"><div class="grow"><div class="t">${esc(x.f.name)}</div><div class="s">${fmt(x.t.amount)} op ${dShort(pd(x.t.date))}, was ${fmt(x.f.amount)} · <b class="${x.diff>0?'neg':'pos'}">${x.diff>0?'+':'−'}${fmt(Math.abs(x.diff)).replace('−','')}</b></div></div><button class="ghost" onclick="acceptPrice('${x.f.id}','${x.t.id}')">Bijwerken</button><button class="del" aria-label="Negeren" onclick="ignorePrice('${x.t.id}')">×</button></div>`).join('')}</div>`:''}
 /* ---------- back-ups ---------- */
 function fullBackup(){return{app:'Stuiver',version:3,made:new Date().toISOString(),S,TX,SAMEN}}
-function weeklyLocalBackup(){try{const w=JSON.parse(localStorage.getItem('stuiver-weekly')||'null');if(w&&Date.now()-w.at<7*864e5)return;
+function weeklyLocalBackup(){try{const w=JSON.parse(localStorage.getItem('stuiver-weekly')||'null');if(w&&Date.now()-w.at<864e5)return;
   if(!allTx().length&&!S.fixed.length)return;localStorage.setItem('stuiver-weekly',JSON.stringify({at:Date.now(),data:fullBackup()}))}catch(e){}}
 function exportBackup(){const name=`stuiver-backup-${today()}.json`,txt=JSON.stringify(fullBackup());
   if(window.Android&&Android.saveFile){try{Android.saveFile(name,txt);return}catch(e){}}
   try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:'application/json'}));a.download=name;document.body.appendChild(a);a.click();a.remove();toast('Back-up opgeslagen')}catch(e){copyBackup()}}
 window.onFileSaved=ok=>toast(ok?'Back-up opgeslagen':'Opslaan is niet gelukt');
-let SRV_BK=null;
+let SRV_BK=null,BK_SHOW=5;
+async function safetyBackup(){try{if(SB.c&&SB.hid){await SB.c.rpc('backup_now',{hid:SB.hid});SRV_BK=null}}catch(e){}}
 async function loadServerBackups(){if(!SB.hid)return;SRV_BK={loading:true};
-  try{const {data,error}=await SB.c.from('backups').select('id,created_at,kind').eq('household_id',SB.hid).order('created_at',{ascending:false}).limit(13);SRV_BK=error?{err:true}:data}catch(e){SRV_BK={err:true}}
+  try{const {data,error}=await SB.c.from('backups').select('id,created_at,kind').eq('household_id',SB.hid).order('created_at',{ascending:false}).limit(45);SRV_BK=error?{err:true}:data}catch(e){SRV_BK={err:true}}
   if(view==='instellingen')renderSettings()}
 function backupSettings(){let h='';
   if(SB.hid){if(SRV_BK===null){loadServerBackups()}
-    h+=`<div class="note" style="margin-top:0">Elke week wordt automatisch een back-up van jullie huishouden gemaakt op de server. De laatste 8 worden bewaard.</div>`;
+    h+=`<div class="note" style="margin-top:0">Elke nacht wordt automatisch een versleutelde back-up van jullie huishouden op de server gemaakt. De laatste 30 worden bewaard. Vóór grote acties (wissen, opschonen, importeren) maakt Stuiver er ook een.</div>`;
     if(SRV_BK&&SRV_BK.err)h+=`<div class="note">Back-ups op de server zijn nog niet beschikbaar.</div>`;
-    else if(Array.isArray(SRV_BK)&&SRV_BK.length)h+=`<div style="margin-top:6px">${SRV_BK.slice(0,6).map(b=>`<div class="item"><div class="ico">${b.kind==='auto'?'🗓️':'💾'}</div><div class="grow"><div class="t">${new Date(b.created_at).toLocaleString('nl-NL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div><div class="s">${b.kind==='auto'?'Automatisch':'Handmatig'}</div></div><button class="ghost" onclick="confirmRestoreServer('${b.id}')">Terugzetten</button></div>`).join('')}</div>`;
-    else if(Array.isArray(SRV_BK))h+=`<div class="note">Nog geen back-ups op de server.</div>`;
+    else if(Array.isArray(SRV_BK)&&SRV_BK.length)h+=`<div style="margin-top:6px">${SRV_BK.slice(0,BK_SHOW).map(b=>`<div class="item"><div class="ico">${b.kind==='auto'?'🗓️':'💾'}</div><div class="grow"><div class="t">${new Date(b.created_at).toLocaleString('nl-NL',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</div><div class="s">${b.kind==='auto'?'Automatisch':'Handmatig'}</div></div><button class="ghost" onclick="confirmRestoreServer('${b.id}')">Terugzetten</button></div>`).join('')}</div>`;
+    if(Array.isArray(SRV_BK)&&SRV_BK.length>BK_SHOW)h+=`<button class="ghost" style="width:100%" onclick="BK_SHOW=99;renderSettings()">Alle ${SRV_BK.length} back-ups tonen</button>`;
+    else if(Array.isArray(SRV_BK)&&!SRV_BK.length)h+=`<div class="note">Nog geen back-ups op de server.</div>`;
     h+=`<div class="btnrow"><button class="outline" onclick="backupNow()">Nu een back-up maken</button></div>`}
   try{const w=JSON.parse(localStorage.getItem('stuiver-weekly')||'null');if(w)h+=`<div class="item"><div class="ico">📱</div><div class="grow"><div class="t">Kopie op dit apparaat</div><div class="s">${new Date(w.at).toLocaleDateString('nl-NL',{day:'numeric',month:'long'})}</div></div><button class="ghost" onclick="confirmRestoreLocal()">Terugzetten</button></div>`}catch(e){}
   return h}
