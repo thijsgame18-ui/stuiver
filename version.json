@@ -1,11 +1,10 @@
 {
- "versionCode": 52,
- "versionName": "8.6",
+ "versionCode": 53,
+ "versionName": "8.7",
  "notes": [
-  "Weekoverzicht als melding op zondagavond",
-  "Melding als een vaste last duurder wordt, of als er een nieuw terugkerend bedrag bijkomt",
-  "Dividendkalender: verwacht dividend voor de komende 12 maanden",
-  "Jaaroverzicht voor de belastingaangifte (Meer → Jaaroverzicht)"
+  "Vakanties worden herkend aan betalingen in het buitenland (Meer → Reizen)",
+  "Toekomstplanner: jullie vermogen over 5, 10 en 20 jaar, met 'wat als'-situaties",
+  "Rapport-melding aan het eind van elke periode"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=52"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=53"
 }

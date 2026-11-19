@@ -274,6 +274,7 @@ th{color:var(--muted);font-weight:500}
   <a data-v="inzicht"><span>📊</span>Inzichten</a>
   <a data-v="rapport"><span>🗓️</span>Maandrapport</a>
   <a data-v="jaar"><span>🧾</span>Jaaroverzicht</a>
+  <a data-v="toekomst"><span>🔭</span>Toekomstplanner</a>
   <div class="grp">Plannen</div>
   <a data-v="betalen"><span>🤔</span>Kan ik dit betalen?</a>
   <a data-v="tools"><span>🧮</span>Rekentools</a>
@@ -408,6 +409,7 @@ th{color:var(--muted);font-weight:500}
       <button class="tile" onclick="go('doelen')"><span>🎯</span>Spaardoelen<small>Sparen met een plan</small></button>
       <button class="tile" onclick="go('rapport')"><span>🗓️</span>Maandrapport<small>Hoe ging de vorige periode?</small></button>
       <button class="tile" onclick="go('jaar')"><span>🧾</span>Jaaroverzicht<small>Alles voor je belastingaangifte</small></button>
+      <button class="tile" onclick="go('toekomst')"><span>🔭</span>Toekomstplanner<small>Waar staan jullie over 5, 10 of 20 jaar?</small></button>
       <button class="tile" onclick="go('inzicht')"><span>📊</span>Inzichten<small>Grafieken en trends</small></button>
       <button class="tile" onclick="go('betalen')"><span>🤔</span>Kan ik dit betalen?<small>Effect van een aankoop</small></button>
       <button class="tile" onclick="go('samen')"><span>💞</span>Samen<small>Kosten delen, gedeelde doelen</small></button>
@@ -471,6 +473,7 @@ th{color:var(--muted);font-weight:500}
   <section class="view" id="v-reizen">
     <button class="back" onclick="go('meer')">‹ Meer</button>
     <h2>Reizen</h2>
+    <div id="tripFound"></div>
     <div id="tripList"></div>
     <button class="btn" style="width:100%" onclick="openTrip()">+ Reis</button>
   </section>
@@ -609,6 +612,13 @@ th{color:var(--muted);font-weight:500}
     <h2>Maandrapport</h2>
     <div class="pnav"><button onclick="rOff=Math.min(-0,rOff-1);renderReport()" aria-label="Vorige">‹</button><span class="lbl" id="rLbl"></span><button onclick="rOff=Math.min(0,rOff+1);renderReport()" aria-label="Volgende">›</button></div>
     <div id="reportBody"></div>
+  </section>
+
+  <!-- TOEKOMST -->
+  <section class="view" id="v-toekomst">
+    <button class="back" onclick="go('meer')">‹ Meer</button>
+    <h2>Toekomstplanner</h2>
+    <div id="planBody"></div>
   </section>
 
   <!-- JAAROVERZICHT -->
@@ -1003,6 +1013,7 @@ function render(){
   if(view==='instellingen')renderSettings();
   if(view==='rapport')renderReport();
   if(view==='jaar')renderYear();
+  if(view==='toekomst')renderPlan();
   if(view==='categorieen')renderCats();
   if(view==='transacties')renderTxList();
   if(view==='beleggingen')renderInvest();
@@ -1354,13 +1365,33 @@ function saveSharedGoal(id){const n=val('sgName');if(!n)return;const d={name:n,i
   if(id)Object.assign(SAMEN.goals.find(g=>g.id===id),d);else SAMEN.goals.push({id:uid(),...d});closeSheet();mark('samen')}
 function delSharedGoal(id){SAMEN.goals=SAMEN.goals.filter(g=>g.id!==id);closeSheet();mark('samen')}
 
+
+/* ---------- reizen herkennen ---------- */
+const CNTRY={ESP:['Spanje','🇪🇸'],FRA:['Frankrijk','🇫🇷'],DEU:['Duitsland','🇩🇪'],BEL:['België','🇧🇪'],ITA:['Italië','🇮🇹'],PRT:['Portugal','🇵🇹'],GBR:['Engeland','🇬🇧'],AUT:['Oostenrijk','🇦🇹'],CHE:['Zwitserland','🇨🇭'],GRC:['Griekenland','🇬🇷'],TUR:['Turkije','🇹🇷'],HRV:['Kroatië','🇭🇷'],USA:['Amerika','🇺🇸'],DNK:['Denemarken','🇩🇰'],SWE:['Zweden','🇸🇪'],NOR:['Noorwegen','🇳🇴'],POL:['Polen','🇵🇱'],CZE:['Tsjechië','🇨🇿'],HUN:['Hongarije','🇭🇺'],CYP:['Cyprus','🇨🇾'],MLT:['Malta','🇲🇹'],EGY:['Egypte','🇪🇬'],MAR:['Marokko','🇲🇦'],THA:['Thailand','🇹🇭'],IDN:['Indonesië','🇮🇩'],CUW:['Curaçao','🇨🇼'],ABW:['Aruba','🇦🇼'],IRL:['Ierland','🇮🇪'],LUX:['Luxemburg','🇱🇺'],SVN:['Slovenië','🇸🇮'],CAN:['Canada','🇨🇦'],MEX:['Mexico','🇲🇽'],ARE:['Dubai','🇦🇪']};
+const ONLINE=/amazon|apple|google|spotify|netflix|paypal|steam|aliexpress|temu|shein|microsoft|facebook|meta|disney|booking\.com|airbnb|ryanair|transavia|klm|easyjet|uber|bolt|zalando|vinted|openai|anthropic/i;
+function txCountry(t){const x=((t.desc||'')+' '+(t.note||''));let m=x.match(/\s([A-Z]{3})\s+(?:Kaartnr|Pasnr|Apple Pay|Google Pay|Betaalpas)/)||x.match(/\s([A-Z]{3})\s*$/);if(!m)return null;const c=m[1];if(c==='NLD'||!CNTRY[c])return null;if(ONLINE.test(x))return null;return c}
+function foundTrips(){const L=allTx().filter(t=>t.type==='out'&&!t.trip).map(t=>({t,c:txCountry(t)})).filter(x=>x.c).sort((a,b)=>a.t.date.localeCompare(b.t.date));
+  const cl=[];L.forEach(x=>{const last=cl[cl.length-1];if(last&&(pd(x.t.date)-pd(last.end))/864e5<=3){last.items.push(x.t);last.end=x.t.date;last.cs[x.c]=(last.cs[x.c]||0)+1}else cl.push({start:x.t.date,end:x.t.date,items:[x.t],cs:{[x.c]:1}})});
+  return cl.filter(c=>c.items.length>=3&&c.start!==c.end).map(c=>{const main=Object.entries(c.cs).sort((a,b)=>b[1]-a[1])[0][0];const key=main+':'+c.start;return{...c,c:main,key,name:CNTRY[main][0]+' '+MND[pd(c.start).getMonth()]+' '+c.start.slice(0,4),flag:CNTRY[main][1],tot:c.items.reduce((s,t)=>s+t.amount,0)}}).filter(c=>!(S.tripDismiss||[]).includes(c.key)).reverse()}
+function renderFoundTrips(){const el=$('tripFound');if(!el)return;const F=foundTrips();
+  el.innerHTML=F.length?`<div class="sechead"><h2>Gevonden reizen</h2></div>`+F.map((c,i)=>`<div class="card" style="margin-bottom:10px"><div class="t" style="font-weight:700">${c.flag} ${esc(c.name)}</div><div class="s">${dShort(pd(c.start))} – ${dShort(pd(c.end))} · ${c.items.length} betalingen in het buitenland · ${fmt(c.tot)}</div><div class="actions" style="margin-top:8px"><button class="btn" onclick="saveFoundTrip(${i})">Opslaan als reis</button><button class="ghost" onclick="dismissTrip('${c.key}')">Geen reis</button></div></div>`).join(''):''}
+function saveFoundTrip(i){const c=foundTrips()[i];if(!c)return;const id=uid();S.trips.push({id,name:c.name,budget:0,start:c.start,end:c.end,items:[],auto:c.c});const ks=new Set(['main']);
+  const ids=new Set(c.items.map(t=>t.id));for(const m in TX)TX[m].forEach(t=>{if(ids.has(t.id)){t.trip=id;ks.add('tx-'+m)}});mark(...ks);renderTrips();toast('Reis opgeslagen')}
+function dismissTrip(k){S.tripDismiss=S.tripDismiss||[];S.tripDismiss.push(k);markMain();renderTrips()}
+function tripDetail(id){const r=S.trips.find(r=>r.id===id);if(!r)return;const tx=allTx().filter(t=>t.trip===id&&t.type==='out').sort((a,b)=>a.date.localeCompare(b.date));
+  const tot=tripSpent(r),days=r.start&&r.end?Math.max(1,Math.round((pd(r.end)-pd(r.start))/864e5)+1):null;const by={};tx.forEach(t=>catAmounts(t).forEach(x=>{const c=S.cats.find(c=>c.id===x.cat);const n=c?c.icon+' '+c.name:'Overig';by[n]=(by[n]||0)+(+x.amount||0)}));(r.items||[]).forEach(i=>{by['✍️ Zelf toegevoegd']=(by['✍️ Zelf toegevoegd']||0)+i.amount});
+  const mx=Math.max(1,...Object.values(by));
+  openSheet(`<h3>✈️ ${esc(r.name)}</h3><div class="kv"><span>Totaal</span><b class="amt">${fmt(tot)}</b></div>${days?`<div class="kv"><span>${days} dagen</span><span class="amt">${fmt(tot/days)} per dag</span></div>`:''}
+   <h3 style="margin-top:14px">Per soort</h3>${Object.entries(by).sort((a,b)=>b[1]-a[1]).map(([n,v])=>`<div style="padding:5px 0"><div class="kv"><span>${esc(n)}</span><span class="amt">${fmt(v)}</span></div><div class="hm-bar" style="height:5px"><i style="width:${v/mx*100}%;background:var(--brand)"></i></div></div>`).join('')}
+   <h3 style="margin-top:14px">Betalingen</h3>${tx.map(t=>txRow(t)).join('')||'<div class="empty">Nog geen gekoppelde betalingen.</div>'}
+   <div class="note">Vlucht of hotel vooraf betaald? Open die betaling en kies bij <b>Ook bij reis</b> deze reis.</div><div class="actions"><button class="ghost" onclick="closeSheet()">Sluiten</button></div>`)}
 /* ---------- reizen ---------- */
 function tripSpent(r){return allTx().filter(t=>t.trip===r.id&&t.type==='out').reduce((s,t)=>s+t.amount,0)+(r.items||[]).reduce((s,i)=>s+i.amount,0)}
-function renderTrips(){$('tripList').innerHTML=S.trips.map(r=>{const sp=tripSpent(r),p=r.budget?sp/r.budget*100:0;
-  return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="t">✈️ ${esc(r.name)}</div><div class="s">${r.start?dShort(pd(r.start)):''}${r.end?' – '+dShort(pd(r.end)):''}</div></div><span class="pill ${p>100?'bad':''}">${Math.round(p)}%</span></div>
-   <div class="kv"><span>Uitgegeven</span><span class="amt">${fmt0(sp)} van ${fmt0(r.budget)}</span></div><div class="bar"><i class="${p>100?'bad':p>85?'warn':''}" style="width:${Math.min(100,p)}%"></i></div>
+function renderTrips(){try{renderFoundTrips()}catch(e){console.error(e)}$('tripList').innerHTML=S.trips.slice().sort((a,b)=>(b.start||'').localeCompare(a.start||'')).map(r=>{const sp=tripSpent(r),p=r.budget?sp/r.budget*100:0;const nd=r.start&&r.end?Math.max(1,Math.round((pd(r.end)-pd(r.start))/864e5)+1):0;
+  return `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center"><div><div class="t">✈️ ${esc(r.name)}</div><div class="s">${r.start?dShort(pd(r.start)):''}${r.end?' – '+dShort(pd(r.end)):''}</div></div>${r.budget?`<span class="pill ${p>100?'bad':''}">${Math.round(p)}%</span>`:''}</div>
+   ${r.budget?`<div class="kv"><span>Uitgegeven</span><span class="amt">${fmt0(sp)} van ${fmt0(r.budget)}</span></div><div class="bar"><i class="${p>100?'bad':p>85?'warn':''}" style="width:${Math.min(100,p)}%"></i></div>`:`<div class="kv"><span>Uitgegeven</span><span class="amt">${fmt0(sp)}${nd?` · ${fmt0(sp/nd)} per dag`:''}</span></div>`}
    ${(r.items||[]).slice(-5).reverse().map(i=>`<div class="item"><div class="grow"><div class="t" style="font-weight:500">${esc(i.desc)}</div><div class="s">${dShort(pd(i.date))}</div></div><div class="amt">${fmt(i.amount)}</div><button class="del" onclick="delTripItem('${r.id}','${i.id}')">×</button></div>`).join('')}
-   <div class="actions" style="margin-top:10px"><button class="ghost" onclick="openTripItem('${r.id}')">+ Uitgave</button><button class="ghost" onclick="openTrip('${r.id}')">Bewerken</button></div></div>`}).join('')
+   <div class="actions" style="margin-top:10px"><button class="ghost" onclick="tripDetail('${r.id}')">Details</button><button class="ghost" onclick="openTripItem('${r.id}')">+ Uitgave</button><button class="ghost" onclick="openTrip('${r.id}')">Bewerken</button></div></div>`}).join('')
   ||'<div class="card empty">Plan je volgende reis en houd bij wat je uitgeeft. Gewone transacties kun je ook aan een reis koppelen.</div>'}
 function openTrip(id){const r=S.trips.find(r=>r.id===id)||{name:'',budget:'',start:'',end:''};
   openSheet(`<h3>${id?'Reis bewerken':'Nieuwe reis'}</h3><label>Bestemming</label><input id="rName" value="${esc(r.name)}"><label>Budget</label><input id="rBud" inputmode="decimal" value="${r.budget}">
@@ -2443,7 +2474,7 @@ function renderFreq(){const el=$('freqCard');if(!el)return;const L=freqData(),R=
 function openFreq(i){const x=(window._FQL||[])[i];if(!x)return;const txs=x.txs.slice().sort((a,b)=>b.date.localeCompare(a.date));
   openSheet(`<h3>${esc(x.name)}</h3><div class="kv"><span>${x.n}× ${freqRange().label}</span><span class="amt">${fmt(x.v)}</span></div><div class="s" style="margin:4px 0 8px">Gemiddeld ${fmt(x.v/x.n)} per keer. Tik op een betaling om de categorie te wijzigen.</div>${txs.map(t=>txRow(t)).join('')}<div class="actions"><button class="ghost" onclick="closeSheet()">Sluiten</button></div>`)}
 /* ---------- updates ---------- */
-const APP_VN='8.6';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='8.7';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
@@ -2762,7 +2793,7 @@ function renderFixedYear(){const by={};S.fixed.forEach(f=>{const k=f.soort||gues
     :'<div class="empty">Voeg vaste lasten toe om je jaaroverzicht te zien.</div>'}
 function detectRecurring(){
   const since=new Date();since.setMonth(since.getMonth()-7);const sinceS=ymd(since);
-  const groups={};allTx().forEach(t=>{if(t.type!=='out'||t.fixedId||t.date<sinceS)return;const n=normName(t.desc);if(!n||n.length<3)return;(groups[n]=groups[n]||[]).push(t)});
+  const groups={};allTx().forEach(t=>{if(t.type!=='out'||t.fixedId||t.date<sinceS)return;if(t.cat&&['spaar','beleg'].includes(catKind(t.cat)))return;const n=normName(t.desc);if(!n||n.length<3)return;(groups[n]=groups[n]||[]).push(t)});
   const fixedNames=S.fixed.map(f=>normName(f.name));const out=[];
   Object.entries(groups).forEach(([n,ts])=>{if(S.recDismiss.includes(n)||fixedNames.some(f=>f&&(n.includes(f)||f.includes(n))))return;
     const months=new Set(ts.map(t=>t.date.slice(0,7)));if(months.size<2)return;
@@ -2780,7 +2811,7 @@ function acceptRec(i){const x=detectRecurring()[i];if(!x)return;const f={id:uid(
 function dismissRec(n){S.recDismiss.push(n);markMain()}
 
 /* ---------- meldingen ---------- */
-let NOTIF={on:true,budget:true,salary:true,fixed:true,partner:true,week:true,change:true};try{Object.assign(NOTIF,JSON.parse(localStorage.getItem('stuiver-notif')||'{}'))}catch(e){}
+let NOTIF={on:true,budget:true,salary:true,fixed:true,partner:true,week:true,change:true,report:true,trip:true};try{Object.assign(NOTIF,JSON.parse(localStorage.getItem('stuiver-notif')||'{}'))}catch(e){}
 const canNotify=()=>!!(window.Android&&Android.notify);
 function saveNotif(){try{localStorage.setItem('stuiver-notif',JSON.stringify(NOTIF))}catch(e){}scheduleNotifCheck()}
 let NOTIFIED={};try{NOTIFIED=JSON.parse(localStorage.getItem('stuiver-notified')||'{}')}catch(e){}
@@ -2799,6 +2830,8 @@ function checkNotifications(){
   if(!localStorage.getItem('stuiver-notif-init'))localStorage.setItem('stuiver-notif-init','1');
   if(NOTIF.change){priceChanges().forEach(x=>once('pc:'+x.t.id,()=>notify(`${x.f.name} is ${x.diff>0?'duurder':'goedkoper'} geworden`,`${fmt(x.t.amount)} in plaats van ${fmt(x.f.amount)}. Open Stuiver om het bedrag bij te werken.`),silent));
     try{detectRecurring().forEach(x=>once('rc:'+x.n,()=>notify('Nieuw terugkerend bedrag',`${x.name}: ${fmt(x.amount)} per maand, al ${x.count} maanden. Is dit een abonnement?`),silent))}catch(e){}}
+  if(NOTIF.report){const P=periodAt(0);if((new Date()-P.s)/864e5>=1){const rt=periodReportText();if(rt)once('pr:'+pKey(periodAt(-1)),()=>notify(rt.title,rt.body),silent)}}
+  if(NOTIF.trip){try{foundTrips().slice(0,1).forEach(c=>once('trip:'+c.key,()=>notify(`${c.flag} Reis herkend: ${c.name}`,`${c.items.length} betalingen in het buitenland, samen ${fmt0(c.tot)}. Open Reizen om hem op te slaan.`),silent))}catch(e){}}
   scheduleFixedReminders();scheduleWeekly();
 }
 function scheduleFixedReminders(){if(!canNotify()||!Android.schedule)return;
@@ -2816,10 +2849,56 @@ function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|
 function notifSettings(){if(!canNotify())return '';
   const row=(k,l)=>`<label class="chk"><input type="checkbox" ${NOTIF[k]?'checked':''} ${NOTIF.on||k==='on'?'':'disabled'} onchange="NOTIF.${k}=this.checked;saveNotif();render()"> ${l}</label>`;
   return `<h3 style="margin-top:22px">Meldingen</h3>${row('on','Meldingen aan')}
-   <div style="padding-left:6px">${row('budget','Budget bijna op (90% en 100%)')}${row('salary','Salaris is binnen')}${row('fixed','Vaste last gaat morgen van de rekening')}${row('partner','Je partner voegt iets toe')}${row('week','Weekoverzicht op zondagavond')}${row('change','Vaste last wordt duurder of er komt een nieuw terugkerend bedrag bij')}</div>
+   <div style="padding-left:6px">${row('budget','Budget bijna op (90% en 100%)')}${row('salary','Salaris is binnen')}${row('fixed','Vaste last gaat morgen van de rekening')}${row('partner','Je partner voegt iets toe')}${row('week','Weekoverzicht op zondagavond')}${row('change','Vaste last wordt duurder of er komt een nieuw terugkerend bedrag bij')}${row('report','Rapport aan het eind van elke periode')}${row('trip','Vakantie herkend')}</div>
    <div class="note">Krijg je geen meldingen? Geef Stuiver toestemming in de instellingen van je telefoon.</div>`}
 
 
+
+/* ---------- toekomstplanner ---------- */
+function planAuto(){let sv=0,iv=0,n=0;for(let o=-1;o>=-3;o--){const x=sums(periodAt(o));if(!x.tx.length)continue;sv+=x.sav||0;iv+=x.inv||0;n++}
+  const per=S.settings.ptype==='maand'?1:1;return{sav:n?sv/n/per:0,inv:n?iv/n/per:0}}
+function planGet(){const a=planAuto();const P=Object.assign({ret:6,rente:1.5,years:20,sav:null,inv:null,scen:[]},S.plan||{});P.savM=P.sav!=null?P.sav:Math.round(a.sav);P.invM=P.inv!=null?P.inv:Math.round(a.inv);return P}
+function planSet(k,v){S.plan=Object.assign({},S.plan||{});const n=parseNum(v);if(v===''||isNaN(n))S.plan[k]=null;else S.plan[k]=n;markMain();renderPlan()}
+function planAddScen(name,amt,from){S.plan=Object.assign({scen:[]},S.plan||{});S.plan.scen=(S.plan.scen||[]).concat([{id:uid(),name,amt:Math.round(amt),from:from||1}]);markMain();renderPlan()}
+function planDelScen(id){S.plan.scen=(S.plan.scen||[]).filter(x=>x.id!==id);markMain();renderPlan()}
+function planScenEdit(id,k,v){const x=(S.plan.scen||[]).find(x=>x.id===id);if(!x)return;if(k==='name')x.name=v;else{const n=parseNum(v);if(!isNaN(n))x[k]=n}markMain();renderPlan()}
+function planRun(P){const accs=S.assets;let sp=accs.filter(a=>a.type==='spaar'||a.type==='betaal').reduce((s,a)=>s+(+acctBalance(a)||0),0),be=accs.filter(a=>a.type==='beleg').reduce((s,a)=>s+(+a.amount||0),0);
+  const pts=[{y:0,sp,be}];const ir=Math.pow(1+P.ret/100,1/12)-1,rr=Math.pow(1+P.rente/100,1/12)-1;
+  for(let m=1;m<=P.years*12;m++){const yr=Math.ceil(m/12);const extra=(P.scen||[]).filter(x=>yr>=(x.from||1)).reduce((s,x)=>s+(+x.amt||0),0);sp=sp*(1+rr)+P.savM+extra;be=be*(1+ir)+P.invM;if(m%12===0)pts.push({y:m/12,sp,be})}
+  return pts}
+function renderPlan(){const el=$('planBody');if(!el)return;const P=planGet(),a=planAuto(),pts=planRun(P),base=planRun({...P,scen:[]});const last=pts[pts.length-1];
+  const W=360,H=200,pl=4,pt=14,pb=24,mx=Math.max(1,...pts.map(p=>p.sp+p.be));const x=i=>pl+i/P.years*(W-pl*2),y=v=>H-pb-v/mx*(H-pt-pb);
+  const areaB=`M${x(0)},${y(0)} `+pts.map(p=>`L${x(p.y)},${y(p.be)}`).join(' ')+` L${x(P.years)},${y(0)} Z`;
+  const areaT=`M${x(0)},${y(pts[0].be)} `+pts.map(p=>`L${x(p.y)},${y(p.be+p.sp)}`).join(' ')+' '+pts.slice().reverse().map(p=>`L${x(p.y)},${y(p.be)}`).join(' ')+' Z';
+  const baseLine=P.scen&&P.scen.length?`<path d="${base.map((p,i)=>(i?'L':'M')+x(p.y)+','+y(p.sp+p.be)).join(' ')}" fill="none" stroke="var(--muted)" stroke-dasharray="4 4" stroke-width="1.5"></path>`:'';
+  const marks=[5,10,20,30].filter(v=>v<=P.years);
+  const svg=`<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block" role="img" aria-label="Verwacht vermogen"><path d="${areaB}" fill="#ffb547" fill-opacity=".55"></path><path d="${areaT}" fill="var(--good)" fill-opacity=".45"></path>${baseLine}
+    ${marks.map(m=>`<line x1="${x(m)}" x2="${x(m)}" y1="${pt}" y2="${H-pb}" stroke="var(--line)" stroke-dasharray="2 4"></line><text x="${x(m)}" y="${H-8}" text-anchor="middle" font-size="10" fill="var(--muted)">${m} jr</text>`).join('')}</svg>`;
+  const inp=(k,v,l,suf,hint)=>`<div><label>${l}</label><div style="display:flex;align-items:center;gap:6px"><input inputmode="decimal" value="${v}" onchange="planSet('${k}',this.value)" style="flex:1">${suf?`<span class="s">${suf}</span>`:''}</div>${hint?`<div class="s" style="font-size:11px">${hint}</div>`:''}</div>`;
+  const avgCat=()=>{const by={};for(let o=-1;o>=-3;o--){const x=sums(periodAt(o));x.tx.filter(t=>t.type==='out'&&!t.fixedId).forEach(t=>catAmounts(t).forEach(c=>{if(catKind(c.cat)!=='uit')return;by[c.cat]=(by[c.cat]||0)+(+c.amount||0)/3}))}return Object.entries(by).filter(([id])=>{const c=S.cats.find(c=>c.id===id);return c&&/opvang|lening|aflos|studie|school|auto|lease|zorg/i.test(c.name)}).sort((a,b)=>b[1]-a[1]).slice(0,3)};
+  const sugg=avgCat().map(([id,v])=>{const c=S.cats.find(c=>c.id===id);return c?`<button class="outline" style="padding:6px 10px;font-size:12px;min-height:0" onclick="planAddScen('${esc(c.name).replace(/'/g,'')} stopt',${Math.round(v)},1)">${c.icon} ${esc(c.name)} stopt (+${fmt0(v)}/mnd)</button>`:''}).join('');
+  el.innerHTML=`<div class="card"><div class="s">Verwacht vermogen over ${P.years} jaar</div><div style="font-family:Fraunces,serif;font-size:34px">${fmt0(last.sp+last.be)}</div>
+    <div class="s"><span style="color:var(--good)">■</span> sparen ${fmt0(last.sp)} · <span style="color:#ffb547">■</span> beleggen ${fmt0(last.be)}${P.scen&&P.scen.length?` · stippellijn: zonder "wat als"`:''}</div>${svg}
+    <div style="display:grid;grid-template-columns:repeat(${marks.length},minmax(0,1fr));gap:8px;margin-top:8px">${marks.map(m=>{const p=pts[m];return `<div style="text-align:center"><div class="s">over ${m} jaar</div><b>${fmt0(p.sp+p.be)}</b></div>`}).join('')}</div></div>
+   <h3 style="margin-top:16px">Uitgangspunten</h3><div class="card"><div class="grid2">
+    ${inp('sav',P.savM,'Sparen per maand','€',`gemiddeld laatste 3 periodes: ${fmt0(a.sav)}`)}${inp('inv',P.invM,'Beleggen per maand','€',`gemiddeld: ${fmt0(a.inv)}`)}
+    ${inp('rente',P.rente,'Rente spaargeld','% per jaar')}${inp('ret',P.ret,'Rendement beleggen','% per jaar','incl. herbelegd dividend')}
+    ${inp('years',P.years,'Aantal jaren','jaar')}</div><div class="note">Beginstand: je rekeningen en DeGiro van vandaag. Rendement is niet gegarandeerd; dit is een rekenvoorbeeld zonder belasting en inflatie.</div></div>
+   <h3 style="margin-top:16px">Wat als…</h3><div class="s" style="margin-bottom:6px">Positief bedrag = je houdt elke maand meer over om te sparen; negatief = minder.</div>
+   <div class="card">${(P.scen||[]).map(x=>`<div style="display:grid;grid-template-columns:1fr 90px 70px 34px;gap:6px;align-items:center;margin-bottom:6px"><input value="${esc(x.name)}" aria-label="Omschrijving" onchange="planScenEdit('${x.id}','name',this.value)"><input inputmode="decimal" value="${x.amt}" aria-label="Bedrag per maand" onchange="planScenEdit('${x.id}','amt',this.value)"><input inputmode="numeric" value="${x.from}" aria-label="Vanaf jaar" title="vanaf jaar" onchange="planScenEdit('${x.id}','from',this.value)"><button class="del" aria-label="Verwijderen" onclick="planDelScen('${x.id}')">×</button></div>`).join('')}
+    ${(P.scen||[]).length?'<div class="s" style="font-size:11px;margin-bottom:8px">Kolommen: omschrijving · € per maand · vanaf jaar</div>':''}
+    <div style="display:flex;flex-wrap:wrap;gap:6px">${sugg}<button class="outline" style="padding:6px 10px;font-size:12px;min-height:0" onclick="planAddScen('Salarisverhoging',200,1)">💼 Salarisverhoging (+€ 200/mnd)</button><button class="outline" style="padding:6px 10px;font-size:12px;min-height:0" onclick="planAddScen('Duurder huis',-400,2)">🏡 Duurder huis (−€ 400/mnd)</button><button class="outline" style="padding:6px 10px;font-size:12px;min-height:0" onclick="planAddScen('Eigen situatie',100,1)">+ Eigen</button></div></div>`}
+
+/* ---------- periode-rapport melding ---------- */
+function periodReportText(){const P=periodAt(-1),x=sums(P);if(!x.tx.length)return null;const prevs=[-2,-3,-4].map(o=>sums(periodAt(o))).filter(y=>y.tx.length);
+  const lines=[];const avgOut=prevs.length?prevs.reduce((s,y)=>s+y.out,0)/prevs.length:0;
+  lines.push(`Uitgegeven ${fmt0(x.out)}${avgOut?` (${x.out>avgOut?'+':''}${Math.round((x.out-avgOut)/avgOut*100)}% t.o.v. normaal)`:''}.`);
+  const sav=(x.sav||0)+(x.inv||0);if(sav)lines.push(`${sav>0?'Gespaard en belegd':'Van spaargeld gehaald'}: ${fmt0(Math.abs(sav))}.`);
+  if(prevs.length){const cat=(y,id)=>y.tx.filter(t=>t.type==='out'&&!t.fixedId).reduce((s,t)=>s+catAmounts(t).filter(c=>c.cat===id).reduce((a,c)=>a+(+c.amount||0),0),0);
+    const odd=S.cats.filter(c=>(c.kind||'uit')==='uit').map(c=>{const now=cat(x,c.id),avg=prevs.reduce((s,y)=>s+cat(y,c.id),0)/prevs.length;return{c,now,avg,d:now-avg}}).filter(o=>o.avg>20&&o.d>50&&o.now>o.avg*1.3).sort((a,b)=>b.d-a.d).slice(0,2);
+    odd.forEach(o=>lines.push(`${o.c.name} is ${Math.round((o.now-o.avg)/o.avg*100)}% hoger dan normaal.`))}
+  priceChanges().slice(0,1).forEach(pc=>lines.push(`${pc.f.name} is ${pc.diff>0?'duurder':'goedkoper'} geworden.`));
+  return{title:`Periode ${dShort(P.s)} – ${dShort(new Date(+P.e-864e5))}: zo ging het`,body:lines.join(' ')}}
 /* ---------- jaaroverzicht ---------- */
 let JY=new Date().getFullYear();
 function box3Val(y,a){const B=(S.box3||{})[y]||{};if(B[a.id]!=null)return +B[a.id];return null}
