@@ -1283,7 +1283,7 @@ function openAsset(id,ptype){const a=S.assets.find(a=>a.id===id)||{type:ptype||'
      <div class="note">Met het rekeningnummer herkent Stuiver overboekingen naar én van deze rekening vanzelf. Geld dat je erop zet telt erbij, geld dat je ervan haalt telt eraf en geldt niet als inkomen. Pas het saldo af en toe aan met wat je bank zegt.</div></div>
    <div id="invWrap" style="display:${a.type==='beleg'?'':'none'}"><label>Totaal ingelegd</label><input id="aInv" inputmode="decimal" value="${a.invested||''}"><div class="note">Zo zie je je rendement.</div></div>
    ${btns(`saveAsset('${id||''}')`,id?`delAsset('${id}')`:'')}`)}
-function saveAsset(id){const n=val('aName');if(!n)return;const ty=val('aType');const d={type:ty,name:n,amount:num('aAmt'),invested:num('aInv'),updated:ty==='betaal'?(val('aDate')||today()):ty==='spaar'?(val('aSDate')||today()):today()};if(ty==='spaar'){d.cat=val('aCat')||null;d.match=val('aMatch')||''}
+function saveAsset(id){const n=val('aName');if(!n)return;const ty=val('aType');const d={type:ty,name:n,amount:num('aAmt'),invested:num('aInv'),updated:ty==='betaal'?(val('aDate')||today()):ty==='spaar'?(val('aSDate')||today()):today()};if(ty==='spaar'){d.cat=val('aCat')||null;d.match=val('aMatch')||'';const tmp={type:'spaar',cat:d.cat,match:d.match};d.updIds=allTx().filter(t=>t.date===d.updated&&spaarHit(tmp,t)).map(t=>t.id)}
   if(id)Object.assign(S.assets.find(a=>a.id===id),d);else S.assets.push({id:uid(),...d});snapshotWorth();closeSheet();markMain()}
 function delAsset(id){S.assets=S.assets.filter(a=>a.id!==id);snapshotWorth();closeSheet();markMain()}
 
@@ -1925,7 +1925,7 @@ function spaarHit(a,t){if(a.cat&&(t.cat===a.cat||(Array.isArray(t.splits)&&t.spl
   if(a.match){const m=a.match.toLowerCase().replace(/\s/g,'');const h=((t.desc||'')+' '+(t.note||'')).toLowerCase().replace(/\s/g,'');if(m.length>=3&&h.includes(m))return true}return false}
 function acctBalance(a){const since=a.updated||'0000';let b=+a.amount||0;
   if(a.type==='betaal'){allTx().forEach(t=>{if(t.date>since)b+=t.type==='in'?t.amount:-t.amount});return b}
-  if(a.type==='spaar'&&(a.cat||a.match)){allTx().forEach(t=>{if(t.date>since&&spaarHit(a,t))b+=t.type==='out'?t.amount:-t.amount});return b}
+  if(a.type==='spaar'&&(a.cat||a.match)){const seen=new Set(a.updIds||[]);allTx().forEach(t=>{if((t.date>since||(t.date===since&&!seen.has(t.id)))&&spaarHit(a,t))b+=t.type==='out'?t.amount:-t.amount});return b}
   return +a.amount||0}
 function arc(cx,cy,r,a0,a1){const p=a=>[cx+r*Math.sin(a),cy-r*Math.cos(a)];const [x0,y0]=p(a0),[x1,y1]=p(a1);return `M${x0.toFixed(2)},${y0.toFixed(2)}A${r},${r} 0 ${a1-a0>Math.PI?1:0} 1 ${x1.toFixed(2)},${y1.toFixed(2)}`}
 function renderDashboard(P,d){
@@ -2430,7 +2430,7 @@ function renderFreq(){const el=$('freqCard');if(!el)return;const L=freqData(),R=
 function openFreq(i){const x=(window._FQL||[])[i];if(!x)return;const txs=x.txs.slice().sort((a,b)=>b.date.localeCompare(a.date));
   openSheet(`<h3>${esc(x.name)}</h3><div class="kv"><span>${x.n}× ${freqRange().label}</span><span class="amt">${fmt(x.v)}</span></div><div class="s" style="margin:4px 0 8px">Gemiddeld ${fmt(x.v/x.n)} per keer. Tik op een betaling om de categorie te wijzigen.</div>${txs.map(t=>txRow(t)).join('')}<div class="actions"><button class="ghost" onclick="closeSheet()">Sluiten</button></div>`)}
 /* ---------- updates ---------- */
-const APP_VN='8.3';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='8.4';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();

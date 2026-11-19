@@ -1,9 +1,8 @@
 {
- "versionCode": 49,
- "versionName": "8.3",
+ "versionCode": 50,
+ "versionName": "8.4",
  "notes": [
-  "Geld van je spaarrekening naar de betaalrekening wordt herkend: het saldo van de spaarrekening gaat omlaag en het telt niet als inkomen",
-  "Vul bij een spaarrekening het rekeningnummer in (bijv. B11130519), dan gaat dit vanzelf"
+  "Opnames van een spaarrekening op dezelfde dag als je het saldo invulde tellen nu ook mee"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=49"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=50"
 }
