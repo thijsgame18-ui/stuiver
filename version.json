@@ -1,9 +1,11 @@
 {
- "versionCode": 51,
- "versionName": "8.5",
+ "versionCode": 52,
+ "versionName": "8.6",
  "notes": [
-  "Bij een ontvangen transactie kun je kiezen: 'Van eigen spaarrekening (geen inkomen)'",
-  "Vul je een rekeningnummer in bij een spaarrekening, dan past Stuiver meteen ook oude overboekingen aan"
+  "Weekoverzicht als melding op zondagavond",
+  "Melding als een vaste last duurder wordt, of als er een nieuw terugkerend bedrag bijkomt",
+  "Dividendkalender: verwacht dividend voor de komende 12 maanden",
+  "Jaaroverzicht voor de belastingaangifte (Meer → Jaaroverzicht)"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=51"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=52"
 }

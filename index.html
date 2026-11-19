@@ -273,6 +273,7 @@ th{color:var(--muted);font-weight:500}
   <a data-v="overzicht"><span>📒</span>Financieel overzicht</a>
   <a data-v="inzicht"><span>📊</span>Inzichten</a>
   <a data-v="rapport"><span>🗓️</span>Maandrapport</a>
+  <a data-v="jaar"><span>🧾</span>Jaaroverzicht</a>
   <div class="grp">Plannen</div>
   <a data-v="betalen"><span>🤔</span>Kan ik dit betalen?</a>
   <a data-v="tools"><span>🧮</span>Rekentools</a>
@@ -322,6 +323,7 @@ th{color:var(--muted);font-weight:500}
     <div class="btnrow"><button class="btn" onclick="openTx()">+ Transactie</button><button class="outline" onclick="go('import')">⬇︎ Importeren</button><button class="outline" id="scanBtn" onclick="startScan()">📷 Bon</button></div>
     <div id="reportBanner"></div>
     <div id="reviewBanner"></div>
+    <div id="priceBanner"></div>
 
     <div class="accts" id="accts" style="display:none"></div>
 
@@ -405,6 +407,7 @@ th{color:var(--muted);font-weight:500}
       <button class="tile" data-ai onclick="go('overzetten')"><span>📲</span>Overzetten<small>Uit een andere app</small></button>
       <button class="tile" onclick="go('doelen')"><span>🎯</span>Spaardoelen<small>Sparen met een plan</small></button>
       <button class="tile" onclick="go('rapport')"><span>🗓️</span>Maandrapport<small>Hoe ging de vorige periode?</small></button>
+      <button class="tile" onclick="go('jaar')"><span>🧾</span>Jaaroverzicht<small>Alles voor je belastingaangifte</small></button>
       <button class="tile" onclick="go('inzicht')"><span>📊</span>Inzichten<small>Grafieken en trends</small></button>
       <button class="tile" onclick="go('betalen')"><span>🤔</span>Kan ik dit betalen?<small>Effect van een aankoop</small></button>
       <button class="tile" onclick="go('samen')"><span>💞</span>Samen<small>Kosten delen, gedeelde doelen</small></button>
@@ -606,6 +609,14 @@ th{color:var(--muted);font-weight:500}
     <h2>Maandrapport</h2>
     <div class="pnav"><button onclick="rOff=Math.min(-0,rOff-1);renderReport()" aria-label="Vorige">‹</button><span class="lbl" id="rLbl"></span><button onclick="rOff=Math.min(0,rOff+1);renderReport()" aria-label="Volgende">›</button></div>
     <div id="reportBody"></div>
+  </section>
+
+  <!-- JAAROVERZICHT -->
+  <section class="view" id="v-jaar">
+    <button class="back" onclick="go('meer')">‹ Meer</button>
+    <h2>Jaaroverzicht</h2>
+    <div class="pnav"><button onclick="JY--;renderYear()" aria-label="Vorig jaar">‹</button><span class="lbl" id="jyLbl"></span><button onclick="JY=Math.min(new Date().getFullYear(),JY+1);renderYear()" aria-label="Volgend jaar">›</button></div>
+    <div id="yearBody"></div>
   </section>
 
   <!-- INSTELLINGEN -->
@@ -966,7 +977,7 @@ function render(){
   $('freeLeft').textContent=fmt(free);
   const pct=FC.used*100;
   renderForecast(P,inc,out,varOut);renderReportBanner();renderReviewBanner();
-  {const ds=$('dashSync');if(ds)ds.style.display=BANK&&BANK.links&&BANK.links.some(l=>l.status==='actief')?'':'none'}renderDashboard(P,{inc,out,varOut,tx,BT,free,days,used:FC.used});try{renderHome()}catch(e){console.error(e)}
+  {const ds=$('dashSync');if(ds)ds.style.display=BANK&&BANK.links&&BANK.links.some(l=>l.status==='actief')?'':'none'}renderDashboard(P,{inc,out,varOut,tx,BT,free,days,used:FC.used});try{renderHome()}catch(e){console.error(e)}try{renderPriceChanges()}catch(e){console.error(e)}
   $('freeBar').style.width=Math.min(100,pct)+'%';$('freeBar').className=pct>100?'bad':pct>85?'warn':'';
   $('daysLeft').textContent=`nog ${days} dag${days===1?'':'en'}`;
   $('perDay').textContent=free>0?`≈ ${fmt(free/days)} per dag`:'je zit erover';$('perDay').title=FC.note;$('freeNote').textContent=FC.note;
@@ -991,6 +1002,7 @@ function render(){
   if(view==='tools')renderToolList();
   if(view==='instellingen')renderSettings();
   if(view==='rapport')renderReport();
+  if(view==='jaar')renderYear();
   if(view==='categorieen')renderCats();
   if(view==='transacties')renderTxList();
   if(view==='beleggingen')renderInvest();
@@ -2431,7 +2443,7 @@ function renderFreq(){const el=$('freqCard');if(!el)return;const L=freqData(),R=
 function openFreq(i){const x=(window._FQL||[])[i];if(!x)return;const txs=x.txs.slice().sort((a,b)=>b.date.localeCompare(a.date));
   openSheet(`<h3>${esc(x.name)}</h3><div class="kv"><span>${x.n}× ${freqRange().label}</span><span class="amt">${fmt(x.v)}</span></div><div class="s" style="margin:4px 0 8px">Gemiddeld ${fmt(x.v/x.n)} per keer. Tik op een betaling om de categorie te wijzigen.</div>${txs.map(t=>txRow(t)).join('')}<div class="actions"><button class="ghost" onclick="closeSheet()">Sluiten</button></div>`)}
 /* ---------- updates ---------- */
-const APP_VN='8.5';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='8.6';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
@@ -2515,6 +2527,18 @@ function dgCell(k){const div=(S.degiro&&S.degiro.div)||[];const l=div.filter(e=>
   openSheet(`<h3>Dividend ${ttl}</h3><div class="kv"><span>${l.length} uitkering${l.length===1?'':'en'}</span><span class="amt in">${fmt(dgSum(l))}</span></div>
    ${l.map(e=>`<div class="item tx-in"><div class="ico">💶</div><div class="grow"><div class="t">${esc(e.p||e.isin)}</div><div class="s">${dShort(pd(e.d))}${e.cur!=='EUR'?` · ${nf2.format(e.g)} ${e.cur} bruto`:''}${e.t?` · ${fmt(Math.abs(e.geur-e.eur))} belasting`:''}</div></div><div class="amt in">+${fmt(e.eur).replace('−','')}</div></div>`).join('')||'<div class="empty">Geen dividend in deze periode.</div>'}
    <div class="actions"><button class="ghost" onclick="closeSheet()">Sluiten</button></div>`)}
+
+function dgForecast(G){const div=(G.div||[]);const now=new Date();const from=new Date(now.getFullYear()-1,now.getMonth(),now.getDate());const fromS=ymd(from);
+  const held=new Set();const pos=(G.pos&&G.pos.length)?G.pos:Object.entries(G.cost||{}).filter(([k,e])=>e.q>0).map(([k,e])=>({isin:k}));pos.forEach(p=>held.add(p.isin));
+  const out=[];div.filter(e=>e.d>=fromS).forEach(e=>{if(held.size&&e.isin&&!held.has(e.isin))return;const d=pd(e.d);const nd=new Date(d.getFullYear()+1,d.getMonth(),d.getDate());if(nd<=now)return;out.push({...e,d:ymd(nd)})});
+  return out.sort((a,b)=>a.d.localeCompare(b.d))}
+function dgForecastHTML(G){const F=dgForecast(G);if(!F.length)return '';const M=['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];const now=new Date();
+  const months=[];for(let i=0;i<12;i++){const d=new Date(now.getFullYear(),now.getMonth()+i,1);const k=ymd(d).slice(0,7);const items=F.filter(e=>e.d.startsWith(k));months.push({k,lbl:M[d.getMonth()],y:d.getFullYear(),items,v:items.reduce((a,e)=>a+e.eur,0)})}
+  const tot=months.reduce((a,m)=>a+m.v,0),mx=Math.max(1,...months.map(m=>m.v));
+  return `<h3 style="margin-top:18px">Verwacht komende 12 maanden</h3><div class="s" style="margin-bottom:6px">Op basis van wat je aandelen het afgelopen jaar uitkeerden. Bedrijven kunnen hun dividend verhogen, verlagen of schrappen, dus dit is een schatting.</div>
+   <div class="kv"><span>Verwacht totaal</span><span class="amt pos">≈ ${fmt(tot)}</span></div>
+   <div style="display:flex;align-items:flex-end;gap:4px;height:100px;margin:10px 0 4px">${months.map(m=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%"><div style="font-size:9px;color:var(--muted)">${m.v?Math.round(m.v):''}</div><div style="width:100%;max-width:22px;height:${Math.max(m.v?3:0,m.v/mx*70)}px;border-radius:4px 4px 0 0;background:var(--good);opacity:.55;border:1px dashed var(--good)"></div><div style="font-size:9px;color:var(--muted);margin-top:3px">${m.lbl}</div></div>`).join('')}</div>
+   ${months.filter(m=>m.items.length).map(m=>`<div style="padding:8px 0;border-bottom:1px solid var(--line)"><div class="kv"><b style="text-transform:capitalize">${m.lbl} ${m.y}</b><span class="amt pos">≈ ${fmt(m.v)}</span></div>${m.items.map(e=>`<div class="kv s"><span>${esc(e.p||e.isin)} · rond ${dShort(pd(e.d))}</span><span>${fmt(e.eur)}</span></div>`).join('')}</div>`).join('')}`}
 function dgDividendHTML(G){const div=(G.div||[]).slice().sort((a,b)=>a.d.localeCompare(b.d));if(!div.length)return '<h3 style="margin-top:16px">💶 Dividend</h3><div class="note">Nog geen dividend gevonden. Lees het Rekeningoverzicht in.</div>';
   const now=new Date(),Y=now.getFullYear(),ys=String(Y),md=ymd(now).slice(5);const M=['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
   const cut=ymd(new Date(Date.now()-365*864e5));const tot=dgSum(div),tax=div.reduce((a,e)=>a+(e.geur-e.eur),0);
@@ -2575,6 +2599,7 @@ function dgDividendHTML(G){const div=(G.div||[]).slice().sort((a,b)=>a.d.localeC
    <h3 style="margin-top:18px">Per jaar</h3><div class="s" style="margin-bottom:6px">Tik op een jaar voor de uitkeringen. Het gestippelde deel is wat er dit jaar nog verwacht wordt.</div>${svg}
    <h3 style="margin-top:18px">Per maand</h3><div class="s" style="margin-bottom:6px">Hoe donkerder, hoe meer dividend. Tik op een vakje voor de uitkeringen.</div>${heat}
    <h3 style="margin-top:18px">Opgebouwd</h3><div class="s" style="margin-bottom:6px">Al je dividend bij elkaar opgeteld.</div>${cumSvg}
+   ${dgForecastHTML(G)}
    <h3 style="margin-top:18px">Per aandeel</h3>${perHtml}`}
 
 let DGR='all';function setDGR(v){DGR=v;renderDegiro()}
@@ -2755,7 +2780,7 @@ function acceptRec(i){const x=detectRecurring()[i];if(!x)return;const f={id:uid(
 function dismissRec(n){S.recDismiss.push(n);markMain()}
 
 /* ---------- meldingen ---------- */
-let NOTIF={on:true,budget:true,salary:true,fixed:true,partner:true};try{Object.assign(NOTIF,JSON.parse(localStorage.getItem('stuiver-notif')||'{}'))}catch(e){}
+let NOTIF={on:true,budget:true,salary:true,fixed:true,partner:true,week:true,change:true};try{Object.assign(NOTIF,JSON.parse(localStorage.getItem('stuiver-notif')||'{}'))}catch(e){}
 const canNotify=()=>!!(window.Android&&Android.notify);
 function saveNotif(){try{localStorage.setItem('stuiver-notif',JSON.stringify(NOTIF))}catch(e){}scheduleNotifCheck()}
 let NOTIFIED={};try{NOTIFIED=JSON.parse(localStorage.getItem('stuiver-notified')||'{}')}catch(e){}
@@ -2772,7 +2797,9 @@ function checkNotifications(){
   if(NOTIF.salary)(S.settings.incomes||[]).forEach(i=>{const got=tx.filter(t=>t.type==='in'&&whoOf(t)===i.id);if(!got.length)return;
     const recent=(new Date()-pd(got[0].date))/864e5<4;once(`s:${k}:${i.id}`,()=>notify(`Salaris van ${i.name} is binnen`,`${fmt(got.reduce((a,t)=>a+t.amount,0))} op ${dShort(pd(got[0].date))}.`),silent||!recent)});
   if(!localStorage.getItem('stuiver-notif-init'))localStorage.setItem('stuiver-notif-init','1');
-  scheduleFixedReminders();
+  if(NOTIF.change){priceChanges().forEach(x=>once('pc:'+x.t.id,()=>notify(`${x.f.name} is ${x.diff>0?'duurder':'goedkoper'} geworden`,`${fmt(x.t.amount)} in plaats van ${fmt(x.f.amount)}. Open Stuiver om het bedrag bij te werken.`),silent));
+    try{detectRecurring().forEach(x=>once('rc:'+x.n,()=>notify('Nieuw terugkerend bedrag',`${x.name}: ${fmt(x.amount)} per maand, al ${x.count} maanden. Is dit een abonnement?`),silent))}catch(e){}}
+  scheduleFixedReminders();scheduleWeekly();
 }
 function scheduleFixedReminders(){if(!canNotify()||!Android.schedule)return;
   let prev=[];try{prev=JSON.parse(localStorage.getItem('stuiver-sched')||'[]')}catch(e){}
@@ -2789,9 +2816,77 @@ function hashStr(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))|
 function notifSettings(){if(!canNotify())return '';
   const row=(k,l)=>`<label class="chk"><input type="checkbox" ${NOTIF[k]?'checked':''} ${NOTIF.on||k==='on'?'':'disabled'} onchange="NOTIF.${k}=this.checked;saveNotif();render()"> ${l}</label>`;
   return `<h3 style="margin-top:22px">Meldingen</h3>${row('on','Meldingen aan')}
-   <div style="padding-left:6px">${row('budget','Budget bijna op (90% en 100%)')}${row('salary','Salaris is binnen')}${row('fixed','Vaste last gaat morgen van de rekening')}${row('partner','Je partner voegt iets toe')}</div>
+   <div style="padding-left:6px">${row('budget','Budget bijna op (90% en 100%)')}${row('salary','Salaris is binnen')}${row('fixed','Vaste last gaat morgen van de rekening')}${row('partner','Je partner voegt iets toe')}${row('week','Weekoverzicht op zondagavond')}${row('change','Vaste last wordt duurder of er komt een nieuw terugkerend bedrag bij')}</div>
    <div class="note">Krijg je geen meldingen? Geef Stuiver toestemming in de instellingen van je telefoon.</div>`}
 
+
+/* ---------- jaaroverzicht ---------- */
+let JY=new Date().getFullYear();
+function box3Val(y,a){const B=(S.box3||{})[y]||{};if(B[a.id]!=null)return +B[a.id];return null}
+function setBox3(y,id,v){S.box3=S.box3||{};S.box3[y]=S.box3[y]||{};const n=parseNum(v);if(isNaN(n)||v==='')delete S.box3[y][id];else S.box3[y][id]=n;markMain();renderYear()}
+function parseNum(v){v=String(v||'').trim().replace(/[€\s]/g,'');if(/,\d{1,2}$/.test(v))v=v.replace(/\./g,'').replace(',','.');else v=v.replace(/,/g,'');return parseFloat(v)}
+function yearData(y){const ys=String(y),tx=allTx().filter(t=>t.date.startsWith(ys));const inc={},out={},sp={};let tIn=0,tOut=0,tSp=0,tBe=0,rente=0;
+  tx.forEach(t=>{if(t.type==='in'){const k=t.cat&&catKind(t.cat);if(k==='spaar'||k==='beleg'){if(k==='spaar')tSp-=t.amount;else tBe-=t.amount;return}
+      if(/rente|interest/i.test(t.desc||''))rente+=t.amount;const c=S.cats.find(c=>c.id===t.cat);const n=c?c.name:'Overig inkomen';inc[n]=(inc[n]||0)+t.amount;tIn+=t.amount;return}
+    if(t.fixedId){const f=S.fixed.find(f=>f.id===t.fixedId);const n=f?f.name:'Vaste lasten';out[n]=(out[n]||0)+t.amount;tOut+=t.amount;return}
+    catAmounts(t).forEach(x=>{const k=catKind(x.cat);const c=S.cats.find(c=>c.id===x.cat);const n=c?c.name:'Nog niet ingedeeld';const a=+x.amount||0;
+      if(k==='spaar'){sp[n]=(sp[n]||0)+a;tSp+=a}else if(k==='beleg'){tBe+=a}else{out[n]=(out[n]||0)+a;tOut+=a}})});
+  const div=((S.degiro&&S.degiro.div)||[]).filter(e=>e.d.startsWith(ys));
+  return{tx,inc,out,sp,tIn,tOut,tSp,tBe,rente,div,dGross:div.reduce((a,e)=>a+(e.geur||0),0),dNet:div.reduce((a,e)=>a+e.eur,0),dTax:div.reduce((a,e)=>a+((e.geur||0)-e.eur),0),dTaxNL:div.filter(e=>/^NL/.test(e.isin||'')).reduce((a,e)=>a+((e.geur||0)-e.eur),0)}}
+function renderYear(){const el=$('yearBody');if(!el)return;const y=JY;$('jyLbl').textContent=y;const D=yearData(y);
+  const accs=S.assets.filter(a=>['betaal','spaar','beleg'].includes(a.type));const B3=accs.map(a=>({a,v:box3Val(y,a)}));const b3tot=B3.reduce((s,x)=>s+(x.v||0),0);
+  const sumBy=(t,k)=>B3.filter(x=>k.includes(x.a.type)).reduce((s,x)=>s+(x.v||0),0);
+  const list=(o,cls)=>Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([n,v])=>`<div class="kv"><span>${esc(n)}</span><span class="amt ${cls||''}">${fmt(v)}</span></div>`).join('')||'<div class="empty">Geen gegevens.</div>';
+  el.innerHTML=`<div class="note">Stuiver kent alleen de transacties die in de app staan${D.tx.length?` (${D.tx.length} in ${y})`:''}. Dit overzicht is een hulpmiddel, geen officiële opgave: controleer de bedragen met de jaaropgaven van je bank en DeGiro.</div>
+   <h3 style="margin-top:18px">Vermogen op 1 januari ${y} (box 3)</h3>
+   <div class="s" style="margin-bottom:6px">De Belastingdienst kijkt naar je saldo op 1 januari. Vul per rekening het saldo van die dag in; dat staat op de jaaropgave van ING en DeGiro.</div>
+   <div class="card">${accs.map(a=>`<div class="kv" style="align-items:center"><span>${esc(a.name)} <span class="s">· ${a.type==='beleg'?'beleggingen':a.type==='spaar'?'spaargeld':'betaalrekening'}</span></span><input inputmode="decimal" style="max-width:130px;text-align:right" value="${box3Val(y,a)!=null?nf2.format(box3Val(y,a)):''}" placeholder="€ 0" aria-label="Saldo ${esc(a.name)} op 1 januari" onchange="setBox3(${y},'${a.id}',this.value)"></div>`).join('')||'<div class="empty">Nog geen rekeningen.</div>'}
+    <div class="kv" style="border-top:1px solid var(--line);padding-top:8px;margin-top:6px"><span>Bank- en spaartegoeden</span><span class="amt">${fmt(sumBy(0,['betaal','spaar']))}</span></div>
+    <div class="kv"><span>Beleggingen</span><span class="amt">${fmt(sumBy(0,['beleg']))}</span></div>
+    <div class="kv"><b>Totaal op 1 januari</b><b class="amt">${fmt(b3tot)}</b></div></div>
+   <h3 style="margin-top:18px">Dividend ${y}</h3>
+   <div class="card">${D.div.length?`<div class="kv"><span>Bruto dividend</span><span class="amt">${fmt(D.dGross)}</span></div><div class="kv"><span>Ingehouden dividendbelasting</span><span class="amt">${fmt(D.dTax)}</span></div>${D.dTaxNL?`<div class="kv"><span class="s">waarvan Nederlandse dividendbelasting</span><span class="amt s">${fmt(D.dTaxNL)}</span></div>`:''}<div class="kv"><b>Netto ontvangen</b><b class="amt pos">${fmt(D.dNet)}</b></div><div class="note">Ingehouden Nederlandse dividendbelasting kun je in je aangifte meestal verrekenen. Buitenlandse bronbelasting soms ook; dat hangt af van het land.</div>`:'<div class="empty">Geen dividend gevonden. Lees je DeGiro-rekeningoverzicht in bij Beleggingen.</div>'}</div>
+   <h3 style="margin-top:18px">Rente</h3><div class="card"><div class="kv"><span>Ontvangen rente (herkend aan "rente" in de omschrijving)</span><span class="amt">${fmt(D.rente)}</span></div></div>
+   <h3 style="margin-top:18px">Totalen ${y}</h3>
+   <div class="card"><div class="kv"><span>Inkomsten</span><span class="amt pos">${fmt(D.tIn)}</span></div><div class="kv"><span>Uitgaven</span><span class="amt">${fmt(D.tOut)}</span></div><div class="kv"><span>Netto gespaard</span><span class="amt">${fmt(D.tSp)}</span></div><div class="kv"><span>Netto belegd</span><span class="amt">${fmt(D.tBe)}</span></div></div>
+   <h3 style="margin-top:18px">Inkomsten per soort</h3><div class="card">${list(D.inc,'pos')}</div>
+   <h3 style="margin-top:18px">Uitgaven per categorie</h3><div class="card">${list(D.out)}</div>
+   ${Object.keys(D.sp).length?`<h3 style="margin-top:18px">Gespaard per pot</h3><div class="card">${list(D.sp)}</div>`:''}
+   <div class="btnrow" style="margin-top:16px"><button class="btn" onclick="exportYear(${y})">Opslaan als PDF</button></div>`}
+function exportYear(y){const D=yearData(y);const accs=S.assets.filter(a=>['betaal','spaar','beleg'].includes(a.type));
+  const row=(a,b,bold)=>`<tr${bold?' style="font-weight:700"':''}><td>${esc(a)}</td><td style="text-align:right">${b}</td></tr>`;
+  const tbl=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).map(([n,v])=>row(n,fmt(v))).join('');
+  const b3=accs.map(a=>row(a.name,box3Val(y,a)!=null?fmt(box3Val(y,a)):'–')).join('');
+  const html=`<!doctype html><html lang="nl"><head><meta charset="utf-8"><title>Stuiver jaaroverzicht ${y}</title><style>body{font:14px/1.5 -apple-system,Segoe UI,Roboto,sans-serif;color:#222;max-width:720px;margin:32px auto;padding:0 20px}h1{font-size:26px}h2{font-size:18px;margin-top:28px;border-bottom:2px solid #222;padding-bottom:4px}table{width:100%;border-collapse:collapse}td{padding:5px 0;border-bottom:1px solid #ddd}.n{color:#666;font-size:12px}@media print{button{display:none}}</style></head><body>
+   <button onclick="print()" style="float:right;padding:8px 14px">Afdrukken / PDF</button><h1>Jaaroverzicht ${y}</h1><p class="n">Gemaakt met Stuiver op ${dShort(new Date())} ${new Date().getFullYear()}. Hulpmiddel, geen officiële opgave.</p>
+   <h2>Vermogen op 1 januari ${y}</h2><table>${b3}${row('Totaal',fmt(accs.reduce((s,a)=>s+(box3Val(y,a)||0),0)),1)}</table>
+   <h2>Dividend</h2><table>${row('Bruto dividend',fmt(D.dGross))}${row('Ingehouden dividendbelasting',fmt(D.dTax))}${row('waarvan Nederlands',fmt(D.dTaxNL))}${row('Netto ontvangen',fmt(D.dNet),1)}</table>
+   <h2>Rente</h2><table>${row('Ontvangen rente',fmt(D.rente))}</table>
+   <h2>Totalen</h2><table>${row('Inkomsten',fmt(D.tIn))}${row('Uitgaven',fmt(D.tOut))}${row('Netto gespaard',fmt(D.tSp))}${row('Netto belegd',fmt(D.tBe))}</table>
+   <h2>Inkomsten per soort</h2><table>${tbl(D.inc)}</table><h2>Uitgaven per categorie</h2><table>${tbl(D.out)}</table></body></html>`;
+  const name=`stuiver-jaaroverzicht-${y}.html`;
+  if(window.Android&&Android.saveFile){try{Android.saveFile(name,html);toast('Opgeslagen. Open het bestand en kies Afdrukken → Opslaan als PDF.');return}catch(e){}}
+  const w=window.open('','_blank');if(w){w.document.write(html);w.document.close();setTimeout(()=>{try{w.print()}catch(e){}},400)}else{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([html],{type:'text/html'}));a.download=name;document.body.appendChild(a);a.click();a.remove()}}
+
+/* ---------- weekoverzicht & prijswijzigingen ---------- */
+function weekRange(off){const n=new Date();n.setHours(0,0,0,0);const day=(n.getDay()+6)%7;const s=new Date(n);s.setDate(n.getDate()-day+7*off);const e=new Date(s);e.setDate(s.getDate()+7);return{s,e}}
+function weekSpend(off){const R=weekRange(off);const by={};let tot=0;allTx().forEach(t=>{if(t.type!=='out')return;const d=pd(t.date);if(d<R.s||d>=R.e)return;
+  if(t.fixedId){const f=S.fixed.find(f=>f.id===t.fixedId);const n=f?f.name:'Vaste lasten';by[n]=(by[n]||0)+t.amount;tot+=t.amount;return}
+  catAmounts(t).forEach(x=>{const k=catKind(x.cat);if(k==='spaar'||k==='beleg')return;const c=S.cats.find(c=>c.id===x.cat);const n=c?c.name:'Overig';by[n]=(by[n]||0)+(+x.amount||0);tot+=+x.amount||0})});
+  return{tot,top:Object.entries(by).sort((a,b)=>b[1]-a[1]).slice(0,3)}}
+function weekText(){const a=weekSpend(0),b=weekSpend(-1);const d=b.tot?Math.round((a.tot-b.tot)/b.tot*100):null;
+  return{title:`Deze week ${fmt0(a.tot)} uitgegeven`,body:(a.top.length?'Meeste: '+a.top.map(([n,v])=>`${n} ${fmt0(v)}`).join(', ')+'. ':'')+(d!=null?(d>0?`${d}% meer dan vorige week.`:d<0?`${-d}% minder dan vorige week.`:'Net zoveel als vorige week.'):'')}}
+function scheduleWeekly(){if(!canNotify()||!Android.schedule)return;const R=weekRange(0);const sun=new Date(R.e);sun.setDate(sun.getDate()-1);sun.setHours(19,0,0,0);
+  const id=Math.abs(hashStr('week'+ymd(sun)))%2000000000;let prev=null;try{prev=+localStorage.getItem('stuiver-week-id')||null}catch(e){}
+  if(prev&&prev!==id){try{Android.cancel(prev)}catch(e){}}
+  if(!(NOTIF.on&&NOTIF.week)||sun<=new Date()){if(prev===id)try{Android.cancel(id)}catch(e){}return}
+  const w=weekText();try{Android.schedule(id,sun.getTime(),w.title,w.body);localStorage.setItem('stuiver-week-id',String(id))}catch(e){}}
+function priceChanges(){const out=[];S.fixed.forEach(f=>{const ts=allTx().filter(t=>t.fixedId===f.id&&t.type==='out').sort((a,b)=>b.date.localeCompare(a.date));if(!ts.length)return;const t=ts[0];
+  const diff=t.amount-(+f.amount||0);if(Math.abs(diff)>Math.max(1,(+f.amount||0)*0.03)&&!(S.priceSeen||{})[t.id])out.push({f,t,diff})});return out}
+function acceptPrice(fid,tid){const f=S.fixed.find(f=>f.id===fid),x=findTx(tid);if(f&&x){f.amount=+x.t.amount.toFixed(2)}S.priceSeen=S.priceSeen||{};S.priceSeen[tid]=1;markMain();render();toast('Bedrag bijgewerkt')}
+function ignorePrice(tid){S.priceSeen=S.priceSeen||{};S.priceSeen[tid]=1;markMain();render()}
+function renderPriceChanges(){const el=$('priceBanner');if(!el)return;const L=priceChanges();
+  el.innerHTML=L.length?`<div class="card" style="margin:12px 0;border:2px solid var(--warn,#c98500)"><div class="t" style="font-weight:700">⚠️ ${L.length===1?'Een vaste last is':L.length+' vaste lasten zijn'} van bedrag veranderd</div>${L.map(x=>`<div class="item"><div class="grow"><div class="t">${esc(x.f.name)}</div><div class="s">${fmt(x.t.amount)} op ${dShort(pd(x.t.date))}, was ${fmt(x.f.amount)} · <b class="${x.diff>0?'neg':'pos'}">${x.diff>0?'+':'−'}${fmt(Math.abs(x.diff)).replace('−','')}</b></div></div><button class="ghost" onclick="acceptPrice('${x.f.id}','${x.t.id}')">Bijwerken</button><button class="del" aria-label="Negeren" onclick="ignorePrice('${x.t.id}')">×</button></div>`).join('')}</div>`:''}
 /* ---------- back-ups ---------- */
 function fullBackup(){return{app:'Stuiver',version:3,made:new Date().toISOString(),S,TX,SAMEN}}
 function weeklyLocalBackup(){try{const w=JSON.parse(localStorage.getItem('stuiver-weekly')||'null');if(w&&Date.now()-w.at<7*864e5)return;
