@@ -276,15 +276,10 @@ th{color:var(--muted);font-weight:500}
   <a data-v="jaar"><span>🧾</span>Jaaroverzicht</a>
   <a data-v="toekomst"><span>🔭</span>Toekomstplanner</a>
   <div class="grp">Plannen</div>
-  <a data-v="betalen"><span>🤔</span>Kan ik dit betalen?</a>
-  <a data-v="tools"><span>🧮</span>Rekentools</a>
   <a data-v="reizen"><span>✈️</span>Reizen</a>
-  <a data-v="notities"><span>📝</span>Notities</a>
-  <a data-v="samen" id="sideSamen"><span>💞</span>Samen</a>
+  <span id="sideSamen" style="display:none"></span>
   <div class="grp">Hulp</div>
-  <a data-v="instellen"><span>🪄</span>Snel instellen</a>
   <a data-v="hulp"><span>💡</span>Hoe werkt Stuiver?</a>
-  <a data-v="nieuw"><span>✨</span>Wat is er nieuw</a>
   <a data-v="instellingen"><span>⚙️</span>Instellingen</a>
   <div class="foot" id="sideFoot"></div>
 </aside>
@@ -325,6 +320,7 @@ th{color:var(--muted);font-weight:500}
     <div id="reportBanner"></div>
     <div id="reviewBanner"></div>
     <div id="priceBanner"></div>
+    <div id="improveBanner"></div>
 
     <div class="accts" id="accts" style="display:none"></div>
 
@@ -362,7 +358,7 @@ th{color:var(--muted);font-weight:500}
       <div class="card" id="planCard"></div>
       <h2>Per categorie</h2>
       <div class="card" id="budgetList"></div>
-      <div class="btnrow"><button class="outline" onclick="openCat()">+ Categorie</button><button class="outline" onclick="copyPrevBudget()">Budget vorige periode overnemen</button></div>
+      <div class="btnrow"><button class="outline" onclick="openCat()">+ Categorie</button><button class="outline" onclick="copyPrevBudget()">Budget vorige periode overnemen</button><button class="outline" onclick="openBudgetSuggest()">✨ Budgetten voorstellen</button></div>
       <h2>Transacties</h2>
       <div class="card" id="allTx"></div>
     </div>
@@ -404,21 +400,15 @@ th{color:var(--muted);font-weight:500}
       <button class="tile" onclick="go('transacties')"><span>🧾</span>Transacties<small>Zoeken en filteren</small></button>
       <button class="tile" onclick="go('overzicht')"><span>📒</span>Financieel overzicht<small>Het hele jaar per maand</small></button>
       <button class="tile" onclick="go('beleggingen')"><span>📈</span>Beleggingen<small>Inleg, waarde en rendement</small></button>
-      <button class="tile" onclick="go('import')"><span>🏦</span>Bank importeren<small>Transacties uit je bank</small></button>
+      <button class="tile" onclick="go('import')"><span>📄</span>Bestand importeren<small>CSV van je bank</small></button>
       <button class="tile" data-ai onclick="go('overzetten')"><span>📲</span>Overzetten<small>Uit een andere app</small></button>
       <button class="tile" onclick="go('doelen')"><span>🎯</span>Spaardoelen<small>Sparen met een plan</small></button>
       <button class="tile" onclick="go('rapport')"><span>🗓️</span>Maandrapport<small>Hoe ging de vorige periode?</small></button>
       <button class="tile" onclick="go('jaar')"><span>🧾</span>Jaaroverzicht<small>Alles voor je belastingaangifte</small></button>
       <button class="tile" onclick="go('toekomst')"><span>🔭</span>Toekomstplanner<small>Waar staan jullie over 5, 10 of 20 jaar?</small></button>
       <button class="tile" onclick="go('inzicht')"><span>📊</span>Inzichten<small>Grafieken en trends</small></button>
-      <button class="tile" onclick="go('betalen')"><span>🤔</span>Kan ik dit betalen?<small>Effect van een aankoop</small></button>
-      <button class="tile" onclick="go('samen')"><span>💞</span>Samen<small>Kosten delen, gedeelde doelen</small></button>
       <button class="tile" onclick="go('reizen')"><span>✈️</span>Reizen<small>Budget per reis</small></button>
-      <button class="tile" onclick="go('notities')"><span>📝</span>Notities<small>Plannen en afspraken</small></button>
-      <button class="tile" onclick="go('tools')"><span>🧮</span>Rekentools<small>7 calculators</small></button>
-      <button class="tile" onclick="go('instellen')"><span>🪄</span>Snel instellen<small>Stap voor stap beginnen</small></button>
       <button class="tile" onclick="go('hulp')"><span>💡</span>Hoe werkt Stuiver?<small>Uitleg en tips</small></button>
-      <button class="tile" onclick="go('nieuw')"><span>✨</span>Wat is er nieuw<small>Laatste verbeteringen</small></button>
       <button class="tile" onclick="go('instellingen')"><span>⚙️</span>Instellingen<small>Periode, thema, back-up</small></button>
     </div>
   </section>
@@ -603,7 +593,8 @@ th{color:var(--muted);font-weight:500}
     <div class="sechead"><h2>Categorieën</h2><button class="btn" style="padding:8px 12px" onclick="openCatNew()">+ Nieuwe categorie</button></div>
     <div class="note" style="margin:-4px 0 12px">Dezelfde categorieën gebruik je bij budget, transacties en importeren. Wat je hier aanpast, verandert overal.</div>
     <div class="catcols" id="catCols"></div>
-    <button class="outline" style="width:100%;margin-top:12px" onclick="openCatPresets()">✨ Aanvullen met de standaardlijst</button>
+    <button class="outline" style="width:100%;margin-top:12px" onclick="openCleanCats()">🧹 Categorieën opruimen</button>
+    <button class="outline" style="width:100%;margin-top:8px" onclick="openCatPresets()">✨ Aanvullen met de standaardlijst</button>
   </section>
 
   <!-- RAPPORT -->
@@ -987,7 +978,7 @@ function render(){
   $('freeLeft').textContent=fmt(free);
   const pct=FC.used*100;
   renderForecast(P,inc,out,varOut);renderReportBanner();renderReviewBanner();
-  {const ds=$('dashSync');if(ds)ds.style.display=BANK&&BANK.links&&BANK.links.some(l=>l.status==='actief')?'':'none'}renderDashboard(P,{inc,out,varOut,tx,BT,free,days,used:FC.used});try{renderHome()}catch(e){console.error(e)}try{renderPriceChanges()}catch(e){console.error(e)}
+  {const ds=$('dashSync');if(ds)ds.style.display=BANK&&BANK.links&&BANK.links.some(l=>l.status==='actief')?'':'none'}renderDashboard(P,{inc,out,varOut,tx,BT,free,days,used:FC.used});try{renderHome()}catch(e){console.error(e)}try{renderPriceChanges()}catch(e){console.error(e)}try{renderImproveBanners()}catch(e){console.error(e)}
   $('freeBar').style.width=Math.min(100,pct)+'%';$('freeBar').className=pct>100?'bad':pct>85?'warn':'';
   $('daysLeft').textContent=`nog ${days} dag${days===1?'':'en'}`;
   $('perDay').textContent=free>0?`≈ ${fmt(free/days)} per dag`:'je zit erover';$('perDay').title=FC.note;$('freeNote').textContent=FC.note;
@@ -1190,6 +1181,7 @@ function saveTx(){
     splits=SPLITS.filter(x=>+x.amount).map(x=>({cat:x.cat,amount:+x.amount}));cat=splits[0]?.cat||cat;if(splits.length<2)splits=null}
   const d={type:txType,amount:a,desc:val('fDesc'),cat,splits,who:txType==='in'?(val('fWho')||null):null,whoManual:txType==='in'&&!!val('fWho'),date,trip:val('fTrip')||null,review:undefined};
   const keys=['tx-'+m];
+  {const nn=normName(d.desc);if(nn&&cat&&!splits){S.rules=S.rules||{};if(txType==='out'&&catKind(cat)!=='in'){if(S.rules[nn]!=='c:'+cat){S.rules[nn]='c:'+cat;keys.push('main')}}else if(txType==='in'&&catKind(cat)==='in'&&S.rules['in:'+nn]!==cat){S.rules['in:'+nn]=cat;keys.push('main')}}}
   if(editTx){const f=findTx(editTx.id);TX[f.m].splice(f.i,1);keys.push('tx-'+f.m);if(f.m!==m)markDeleted(f.m,editTx.id);(TX[m]=TX[m]||[]).push({...editTx,...d})}
   else{(TX[m]=TX[m]||[]).push({id:uid(),...d,by:SB.uid||null,receipt:scanned?.receipt||null});scanned=null}
   closeSheet();mark(...new Set(keys));
@@ -1728,10 +1720,25 @@ function checkEpoch(ep){ep=+ep||0;if(!SB.hid||ep<=localEp()){SB.epoch=Math.max(S
   saveDirty();saveLocal();BANK=null;render();toast('Transacties zijn gewist');return true}
 async function applyDocAny(k,data){if(k==='_vault'){onVaultDoc(data);return}if(data&&k.startsWith('tx-')&&data.ep!=null)checkEpoch(data.ep);if(!data||dirty[k]||writing[k])return;
   if(data.enc){if(!VAULT.key){VAULT.pending=true;return}try{data=await vDec(data)}catch(e){console.warn('ontsleutelen mislukt',k);return}}applyDoc(k,data)}
+
+/* ---------- 3-weg samenvoegen ---------- */
+let BASE=(()=>{try{return JSON.parse(localStorage.getItem('stuiver-base')||'{}')}catch(e){return{}}})();
+const hj=x=>hashStr(JSON.stringify(x===undefined?null:x));
+function saveBase(){try{localStorage.setItem('stuiver-base',JSON.stringify(BASE))}catch(e){}}
+function setBaseTx(k,items){const o={};(items||[]).forEach(t=>{if(t&&t.id)o[t.id]=hj(t)});BASE[k]=o;saveBase()}
+function setBaseMain(d){const o={k:{},c:{}};Object.keys(d||{}).forEach(key=>{if(MAIN_COLS.includes(key)&&Array.isArray(d[key])){o.c[key]={};d[key].forEach(x=>{if(x&&x.id)o.c[key][x.id]=hj(x)})}else o.k[key]=hj(d[key])});BASE.main=o;saveBase()}
+function merge3Items(L,R,B){const rm=new Map((R||[]).map(x=>[x.id,x])),out=[],seen=new Set();
+  (L||[]).forEach(x=>{seen.add(x.id);const b=B[x.id],rv=rm.get(x.id);const changedLocal=b==null||hj(x)!==b;
+    if(changedLocal){out.push(x);return}if(rv){out.push(rv);return}/* lokaal ongewijzigd, op server verwijderd */});
+  (R||[]).forEach(x=>{if(seen.has(x.id))return;if(B[x.id]!=null)return;out.push(x)});return out}
+function merge3Main(L,R){const B=BASE.main;if(!B||!R)return null;const out=Object.assign({},L);
+  Object.keys(R).forEach(key=>{if(MAIN_COLS.includes(key)&&Array.isArray(R[key])){out[key]=merge3Items(L[key]||[],R[key],(B.c||{})[key]||{});return}
+    if(!(key in L)){out[key]=R[key];return}if(hj(L[key])===(B.k||{})[key])out[key]=R[key]});
+  MAIN_COLS.forEach(key=>{if(Array.isArray(L[key])&&!Array.isArray(R[key]))out[key]=L[key]});return out}
 function applyDoc(k,data){if(!data||dirty[k]||writing[k])return;
-  if(k==='main'){S=Object.assign(defaults(),clone(data));S.settings=Object.assign(defaults().settings,S.settings||{});migrateSettings();rememberMain(S)}
+  if(k==='main'){S=Object.assign(defaults(),clone(data));S.settings=Object.assign(defaults().settings,S.settings||{});migrateSettings();rememberMain(S);setBaseMain(clone(data))}
   else if(k==='samen')SAMEN=Object.assign(defSamen(),clone(data));
-  else if(k.startsWith('tx-')){const m=k.slice(3),old=new Set((TX[m]||[]).map(t=>t.id));TX[m]=clone(data.items||[]).filter(t=>!DELETED.has(m+':'+t.id));
+  else if(k.startsWith('tx-')){const m=k.slice(3),old=new Set((TX[m]||[]).map(t=>t.id));TX[m]=clone(data.items||[]).filter(t=>!DELETED.has(m+':'+t.id));setBaseTx(k,data.items||[]);
     if(SB.ready)TX[m].filter(t=>!old.has(t.id)&&t.by&&t.by!==SB.uid).slice(0,5).forEach(t=>notifyPartner(t))}}
 async function sbWrite(k){
   if(VAULT.on&&!VAULT.key)throw{code:'locked',message:'vergrendeld'};
@@ -1740,17 +1747,20 @@ async function sbWrite(k){
     const {data:row0,error}=await SB.c.from('docs').select('data').eq('household_id',SB.hid).eq('key',k).maybeSingle();
     if(error)throw sbErr(error);
     const row=row0&&row0.data&&row0.data.enc?{data:await vDec(row0.data)}:row0;
-    if(row&&row.data&&Array.isArray(row.data.items)){const mine=new Set((TX[m]||[]).map(t=>t.id));const add=row.data.items.filter(t=>!mine.has(t.id)&&!DELETED.has(m+':'+t.id));
-      if(add.length){TX[m]=(TX[m]||[]).concat(add);saveLocal();render()}data={items:TX[m]||[]}}}
+    if(row&&row.data&&Array.isArray(row.data.items)){const srvItems=row.data.items.filter(t=>!DELETED.has(m+':'+t.id));
+      if(BASE[k]){const merged=merge3Items(TX[m]||[],srvItems,BASE[k]);if(hj(merged)!==hj(TX[m]||[])){TX[m]=merged;saveLocal();render()}}
+      else{const mine=new Set((TX[m]||[]).map(t=>t.id));const add=srvItems.filter(t=>!mine.has(t.id));if(add.length){TX[m]=(TX[m]||[]).concat(add);saveLocal();render()}}
+      data={items:TX[m]||[]}}}
   if(k==='main'){const {data:row0,error}=await SB.c.from('docs').select('data').eq('household_id',SB.hid).eq('key','main').maybeSingle();if(error)throw sbErr(error);
     let srv=null;try{srv=row0&&row0.data?(row0.data.enc?await vDec(row0.data):row0.data):null}catch(e){srv=null}
-    if(srv){const before=JSON.stringify(MAIN_COLS.map(c=>(S[c]||[]).length));S=mergeMain(S,srv);data=clone(S);if(JSON.stringify(MAIN_COLS.map(c=>(S[c]||[]).length))!==before){saveLocal();render()}}}
+    if(srv){const before=JSON.stringify(MAIN_COLS.map(c=>(S[c]||[]).length));const m3=merge3Main(S,srv);if(m3){const g=Object.assign({},srv.gone||{},S.gone||{});S=m3;S.gone=g}else S=mergeMain(S,srv);data=clone(S);if(JSON.stringify(MAIN_COLS.map(c=>(S[c]||[]).length))!==before){saveLocal();render()}}}
   const plain=k==='main'?data:null;
   if(VAULT.key)data=await vEnc(data);
   if(k.startsWith('tx-'))data.ep=SB.epoch||0;
   const {error}=await SB.c.from('docs').upsert({household_id:SB.hid,key:k,data,updated_by:SB.uid,updated_at:new Date().toISOString()},{onConflict:'household_id,key'});
   if(error)throw sbErr(error);
-  if(plain)rememberMain(plain);
+  if(plain){rememberMain(plain);setBaseMain(plain)}
+  if(k.startsWith('tx-'))setBaseTx(k,(TX[k.slice(3)]||[]));
 }
 async function sbPull(first){
   const {data,error}=await SB.c.from('docs').select('key,data').eq('household_id',SB.hid);
@@ -2190,7 +2200,7 @@ function bankStart(){if(!SB.c||!SB.hid)return;
   bankAuto()}
 async function bankAuto(){if(!SB.hid||bankBusy)return;bankBusy=true;
   try{const st=await bankCall('status');BANK=st;if(st.links&&st.links.some(l=>l.status==='actief'))await bankCall('sync').catch(()=>{})}catch(e){}
-  await processBankTx();bankBusy=false;if(view==='instellingen')renderSettings()}
+  await processBankTx();bankBusy=false;if(view==='instellingen')renderSettings();try{renderImproveBanners();const be=bankExpiry();if(be&&canNotify())once('bx:'+(be.d<0?'x':be.d<=3?'3':'21')+':'+be.l.id,()=>notify(be.d<0?'Bankkoppeling verlopen':'Bankkoppeling verloopt binnenkort',be.d<0?'Koppel opnieuw in Stuiver om transacties te blijven ophalen.':`Nog ${be.d} dagen. Koppel opnieuw in Stuiver.`))}catch(e){}}
 async function processBankTx(){if(!SB.hid)return;
   let rows=[];try{const {data,error}=await SB.c.rpc('claim_bank_tx',{hid:SB.hid});if(error)return;rows=data||[]}catch(e){return}
   const keys=new Set();let n=0;
@@ -2202,7 +2212,7 @@ async function processBankTx(){if(!SB.hid)return;
       const t={id:uid(),type:amt>0?'in':'out',amount:Math.abs(amt),desc,date:r.date,imp:key,bank:bid,by:null};
       if(r.note&&r.note!==desc)t.note=r.note.slice(0,160);
       if(t.type==='in'){t.who=guessWho(t.date,t.amount);t.cat=guessInCat(desc)}
-      else{let g=guessCat(desc);if(!g&&r.note)g=guessCat(r.note);
+      else{let g=guessCat(desc);if(!g&&r.note)g=guessCat(r.note);if(!g)g=guessFromHistory(desc);
         if(g.startsWith('f:'))t.fixedId=g.slice(2);else if(g.startsWith('c:'))t.cat=g.slice(2);else{t.cat=fallback;t.review=true}}
       classifyInternal(t);
       const m=r.date.slice(0,7);(TX[m]=TX[m]||[]).push(t);keys.add('tx-'+m);n++})}
@@ -2274,7 +2284,7 @@ function renderReviewBanner(){const el=$('reviewBanner');if(!el)return;const r=r
 function openReview(){const r=reviewList();if(!r.length){closeSheet();toast('Alles is ingedeeld 🎉');return}
   const g={};r.forEach(t=>{const k=t.type+'|'+(normName(t.desc)||t.desc);(g[k]=g[k]||{name:t.desc,type:t.type,items:[],tot:0}).items.push(t);g[k].tot+=t.amount});
   const groups=Object.values(g).sort((a,b)=>b.items.length-a.items.length||b.tot-a.tot);
-  openSheet(`<h3>Indelen</h3><div class="note" style="margin-top:0">${r.length} transacties van ${groups.length} winkels of namen. Kies per regel een categorie. Dat geldt dan voor alle transacties van die naam, en Stuiver onthoudt het voor de volgende keer.</div>
+  openSheet(`<h3>Indelen</h3><button class="outline" style="width:100%;margin-bottom:10px" onclick="autoIndelen()">✨ Automatisch indelen wat Stuiver herkent</button><div class="note" style="margin-top:0">${r.length} transacties van ${groups.length} winkels of namen. Kies per regel een categorie. Dat geldt dan voor alle transacties van die naam, en Stuiver onthoudt het voor de volgende keer.</div>
     <div class="s" style="margin:8px 0">Nog ${groups.length} te gaan · <span class="dir in">↓ Ontvangen</span>geld erbij <span class="dir out" style="margin-left:8px">↑ Betaald</span>geld eraf</div>
     ${groups.slice(0,30).map(x=>`<div class="item tx-${x.type==='in'?'in':'out'}" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><div class="grow"><div class="t">${esc(x.name)}</div><div class="s">${x.type==='in'?'<span class="dir in">↓ Ontvangen</span>':'<span class="dir out">↑ Betaald</span>'}${x.items.length}× · laatst ${dShort(pd(x.items[0].date))}${x.items[0].note?' · '+esc(x.items[0].note.slice(0,50)):''}</div></div><div class="amt ${x.type==='in'?'in':'out'}">${x.type==='in'?'+':'−'}${fmt0(x.tot).replace('−','')}</div></div>
       <select style="margin-top:6px;padding:8px 10px;font-size:14px" onchange="setReviewCat('${x.items[0].id}',this.value)">${x.type==='in'?`<option value="">Kies categorie…</option>${S.cats.filter(c=>c.kind==='in').map(c=>`<option value="c:${c.id}">${c.icon} ${esc(c.name)}</option>`).join('')}<optgroup label="Terug van spaarrekening">${S.cats.filter(c=>c.kind==='spaar').map(c=>`<option value="c:${c.id}">${c.icon} ${esc(c.name)}</option>`).join('')}</optgroup>`:catOptions('')}</select></div>`).join('')}
@@ -2474,7 +2484,7 @@ function renderFreq(){const el=$('freqCard');if(!el)return;const L=freqData(),R=
 function openFreq(i){const x=(window._FQL||[])[i];if(!x)return;const txs=x.txs.slice().sort((a,b)=>b.date.localeCompare(a.date));
   openSheet(`<h3>${esc(x.name)}</h3><div class="kv"><span>${x.n}× ${freqRange().label}</span><span class="amt">${fmt(x.v)}</span></div><div class="s" style="margin:4px 0 8px">Gemiddeld ${fmt(x.v/x.n)} per keer. Tik op een betaling om de categorie te wijzigen.</div>${txs.map(t=>txRow(t)).join('')}<div class="actions"><button class="ghost" onclick="closeSheet()">Sluiten</button></div>`)}
 /* ---------- updates ---------- */
-const APP_VN='8.7';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='9.0';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
@@ -2899,6 +2909,54 @@ function periodReportText(){const P=periodAt(-1),x=sums(P);if(!x.tx.length)retur
     odd.forEach(o=>lines.push(`${o.c.name} is ${Math.round((o.now-o.avg)/o.avg*100)}% hoger dan normaal.`))}
   priceChanges().slice(0,1).forEach(pc=>lines.push(`${pc.f.name} is ${pc.diff>0?'duurder':'goedkoper'} geworden.`));
   return{title:`Periode ${dShort(P.s)} – ${dShort(new Date(+P.e-864e5))}: zo ging het`,body:lines.join(' ')}}
+
+/* ---------- verbeteringen: leren, budget, spaarcheck, bank, opruimen ---------- */
+let HIST=null,HISTAT=0;
+function histMap(){if(HIST&&Date.now()-HISTAT<5000)return HIST;const m={};allTx().forEach(t=>{if(t.type!=='out'||t.review||!t.cat||t.fixedId||(t.splits&&t.splits.length))return;if(!S.cats.some(c=>c.id===t.cat))return;const n=normName(t.desc);if(!n)return;const o=m[n]=m[n]||{};o[t.cat]=(o[t.cat]||0)+1});HIST=m;HISTAT=Date.now();return m}
+function guessFromHistory(desc){const n=normName(desc);if(!n)return '';const m=histMap();let o=m[n];
+  if(!o){const first=n.split(' ')[0];if(first&&first.length>=4){o={};Object.keys(m).forEach(k=>{if(k.split(' ')[0]===first)Object.entries(m[k]).forEach(([c,v])=>o[c]=(o[c]||0)+v)});if(!Object.keys(o).length)o=null}}
+  if(!o)return '';const e=Object.entries(o).sort((a,b)=>b[1]-a[1]);const tot=e.reduce((s,x)=>s+x[1],0);if(e[0][1]>=2&&e[0][1]/tot>=0.8)return 'c:'+e[0][0];return ''}
+function autoIndelen(){HIST=null;let n=0;const ks=new Set();for(const m in TX)TX[m].forEach(t=>{if(!isPending(t)||t.type!=='out')return;let g=guessCat(t.desc)||(t.note?guessCat(t.note):'')||guessFromHistory(t.desc);
+    if(g&&g.startsWith('c:')&&S.cats.some(c=>c.id===g.slice(2))&&!/^overig$/i.test((S.cats.find(c=>c.id===g.slice(2))||{}).name||'')){t.cat=g.slice(2);delete t.review;n++;ks.add('tx-'+m)}else if(g&&g.startsWith('f:')){t.fixedId=g.slice(2);delete t.review;n++;ks.add('tx-'+m)}});
+  if(n){mark(...ks)}toast(n?`${n} transacties automatisch ingedeeld`:'Niets gevonden om automatisch in te delen');if(n)setTimeout(openReview,300)}
+/* budgetvoorstel */
+function budgetSuggest(){const out=[];const per=[-1,-2,-3].map(o=>periodAt(o)).filter(P=>txIn(P).length);if(!per.length)return out;
+  S.cats.filter(c=>(c.kind||'uit')==='uit').forEach(c=>{const avg=per.reduce((s,P)=>s+spentCat(txIn(P),c.id),0)/per.length;if(avg<5&&!(+c.budget))return;const step=avg<50?5:avg<300?10:25;const sug=Math.ceil(avg/step)*step;out.push({c,avg,sug})});
+  return out.sort((a,b)=>b.avg-a.avg)}
+function openBudgetSuggest(){const L=budgetSuggest();if(!L.length){toast('Nog te weinig gegevens: wacht tot er een volle periode is');return}
+  openSheet(`<h3>Budgetten voorstellen</h3><p class="s">Op basis van wat jullie de afgelopen ${Math.min(3,[-1,-2,-3].filter(o=>txIn(periodAt(o)).length).length)} periodes gemiddeld uitgaven, naar boven afgerond. Vink uit wat je niet wilt.</p>
+   ${L.map((x,i)=>`<label class="chk" style="display:flex;align-items:center;gap:10px;padding:6px 0"><input type="checkbox" id="bs${i}" ${x.sug>0?'checked':''}><span style="flex:1">${x.c.icon} ${esc(x.c.name)}<br><span class="s">nu ${fmt0(+x.c.budget||0)} · gemiddeld ${fmt0(x.avg)}</span></span><b>${fmt0(x.sug)}</b></label>`).join('')}
+   <div class="actions"><button class="ghost" onclick="closeSheet()">Annuleren</button><button class="btn" onclick="applyBudgetSuggest()">Overnemen</button></div>`)}
+function applyBudgetSuggest(){const L=budgetSuggest();let n=0;L.forEach((x,i)=>{const cb=$('bs'+i);if(cb&&cb.checked){x.c.budget=x.sug;n++}});S.budgetSugDone=true;closeSheet();markMain();render();toast(`${n} budgetten ingesteld`)}
+/* spaarsaldo-check */
+function staleSavings(){const lim=ymd(new Date(Date.now()-30*864e5));return S.assets.filter(a=>a.type==='spaar'&&(!a.updated||a.updated<lim)&&!((S.snooze||{})['sp:'+a.id]>Date.now()))}
+function confirmSaving(id){const a=S.assets.find(a=>a.id===id);if(!a)return;a.amount=Math.round(acctBalance(a)*100)/100;a.updated=today();a.updIds=allTx().filter(t=>t.date===a.updated&&spaarHit(a,t)).map(t=>t.id);markMain();render();toast('Saldo bevestigd')}
+/* bankkoppeling verloopt */
+function bankExpiry(){const L=(BANK&&BANK.links)||[];let worst=null;L.forEach(l=>{const days=l.valid_until?Math.ceil((new Date(l.valid_until)-new Date())/864e5):null;const st=l.status!=='actief'?-1:days;if(st!=null&&st<=21&&(worst==null||st<worst.d))worst={l,d:st}});return worst}
+/* categorieën opruimen */
+const CLEAN=[['Vervoer','🚗',/^(vervoer|auto|brandstof( en laden)?|openbaar vervoer|parkeren|ov)$/i],['Horeca','🍽️',/^(horeca|koffie en lunch|uit eten.*)$/i],
+ ['Wonen','🏠',/^(wonen( en inrichting)?|huishouden|klussen en tuin)$/i],['Abonnementen','📺',/^(abonnementen( en streaming)?|telefoon en internet|telecom.*|lidmaatschappen)$/i],
+ ['Zorg en verzorging','🩺',/^(zorg(kosten)?|persoonlijke verzorging|verzorging|zorg en verzorging)$/i],['Vrije tijd','🎭',/^(vrije tijd|uitjes( en cultuur)?|sport( en fitness)?|hobby.*|onderwijs en cursussen)$/i],
+ ['Kleding','👕',/^kleding( en schoenen)?$/i],['Cadeaus en goede doelen','🎁',/^(cadeaus|goede doelen|cadeaus en goede doelen)$/i],['Overig','❓',/^(overig|webshops|bankkosten|contant geld)$/i]];
+function cleanPlan(){const plan=[];const uit=S.cats.filter(c=>(c.kind||'uit')==='uit');CLEAN.forEach(([name,icon,re])=>{const mem=uit.filter(c=>re.test(c.name.trim()));if(mem.length<2)return;
+  const tgt=mem.find(c=>c.name.toLowerCase()===name.toLowerCase())||mem.slice().sort((a,b)=>catUse(b.id)-catUse(a.id))[0];plan.push({name,icon,tgt,from:mem.filter(c=>c!==tgt)})});
+  const unused=S.cats.filter(c=>['uit','in'].includes(c.kind||'uit')&&!catUse(c.id)&&!(+c.budget)&&!S.assets.some(a=>a.cat===c.id)&&!plan.some(p=>p.from.includes(c)||p.tgt===c)&&!/^(overig|salaris|overig inkomen)$/i.test(c.name));return{plan,unused}}
+function openCleanCats(){const {plan,unused}=cleanPlan();if(!plan.length&&!unused.length){toast('Je categorieën zijn al netjes');S.cleanDone=true;markMain();return}
+  const after=S.cats.length-plan.reduce((s,p)=>s+p.from.length,0)-unused.length;
+  openSheet(`<h3>Categorieën opruimen</h3><p class="s">Van ${S.cats.length} naar ${after} categorieën. Transacties, budgetten en geleerde regels gaan mee naar de nieuwe categorie. Vink uit wat je apart wilt houden.</p>
+   ${plan.map((p,i)=>`<label class="chk" style="display:flex;gap:10px;padding:7px 0;align-items:flex-start"><input type="checkbox" id="cl${i}" checked><span><b>${p.icon} ${esc(p.name)}</b><br><span class="s">wordt één met: ${p.from.map(c=>esc(c.name)).join(', ')}</span></span></label>`).join('')}
+   ${unused.length?`<label class="chk" style="display:flex;gap:10px;padding:7px 0;align-items:flex-start"><input type="checkbox" id="clU" checked><span><b>🗑️ ${unused.length} ongebruikte categorieën weghalen</b><br><span class="s">${unused.map(c=>esc(c.name)).join(', ')}</span></span></label>`:''}
+   <div class="actions"><button class="ghost" onclick="closeSheet()">Annuleren</button><button class="btn" onclick="doCleanCats()">Opruimen</button></div>`)}
+function doCleanCats(){const {plan,unused}=cleanPlan();const keys=new Set(['main']);let n=0;
+  plan.forEach((p,i)=>{const cb=$('cl'+i);if(!cb||!cb.checked)return;p.tgt.name=p.name;p.tgt.icon=p.icon;p.from.forEach(c=>{p.tgt.budget=(+p.tgt.budget||0)+(+c.budget||0);moveCat(c.id,p.tgt.id).forEach(k=>keys.add(k));S.assets.forEach(a=>{if(a.cat===c.id)a.cat=p.tgt.id});S.cats=S.cats.filter(x=>x.id!==c.id);n++})});
+  const u=$('clU');if(u&&u.checked){unused.forEach(c=>{S.cats=S.cats.filter(x=>x.id!==c.id);n++})}
+  S.cleanDone=true;closeSheet();mark(...keys);render();toast(`Opgeruimd: nog ${S.cats.length} categorieën`)}
+function renderImproveBanners(){const el=$('improveBanner');if(!el)return;let h='';
+  const be=bankExpiry();if(be)h+=`<div class="card" style="margin:12px 0;border:2px solid var(--bad)"><div class="t" style="font-weight:700">🏦 ${be.d<0?'De bankkoppeling is verlopen':`De bankkoppeling verloopt over ${be.d} dag${be.d===1?'':'en'}`}</div><div class="s">Koppel opnieuw, anders haalt Stuiver geen nieuwe transacties meer op.</div><div class="actions" style="margin-top:8px"><button class="btn" onclick="openBankPick()">Opnieuw koppelen</button></div></div>`;
+  staleSavings().slice(0,2).forEach(a=>{h+=`<div class="card" style="margin:12px 0"><div class="t" style="font-weight:700">💰 Klopt het saldo van ${esc(a.name)} nog?</div><div class="s">Volgens Stuiver: <b>${fmt(acctBalance(a))}</b>. Vergelijk het even met de ING-app.</div><div class="actions" style="margin-top:8px"><button class="btn" onclick="confirmSaving('${a.id}')">Klopt</button><button class="outline" onclick="openAsset('${a.id}')">Aanpassen</button></div></div>`});
+  if(!S.cleanDone&&S.cats.length>28&&cleanPlan().plan.length)h+=`<div class="card" style="margin:12px 0"><div class="t" style="font-weight:700">🧹 ${S.cats.length} categorieën is veel</div><div class="s">Stuiver kan overlappende categorieën samenvoegen. Dat maakt indelen en de taart een stuk overzichtelijker.</div><div class="actions" style="margin-top:8px"><button class="btn" onclick="openCleanCats()">Bekijken</button><button class="ghost" onclick="S.cleanDone=true;markMain();render()">Nee, dank je</button></div></div>`;
+  if(!S.budgetSugDone&&budgetSuggest().length&&S.cats.filter(c=>(c.kind||'uit')==='uit'&&+c.budget>0).length<5)h+=`<div class="card" style="margin:12px 0"><div class="t" style="font-weight:700">🎯 Budgetten instellen?</div><div class="s">De meeste categorieën hebben nog geen budget. Stuiver kan ze voorstellen op basis van wat jullie normaal uitgeven.</div><div class="actions" style="margin-top:8px"><button class="btn" onclick="openBudgetSuggest()">Voorstel bekijken</button><button class="ghost" onclick="S.budgetSugDone=true;markMain();render()">Later</button></div></div>`;
+  el.innerHTML=h}
 /* ---------- jaaroverzicht ---------- */
 let JY=new Date().getFullYear();
 function box3Val(y,a){const B=(S.box3||{})[y]||{};if(B[a.id]!=null)return +B[a.id];return null}

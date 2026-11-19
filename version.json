@@ -1,10 +1,14 @@
 {
- "versionCode": 53,
- "versionName": "8.7",
+ "versionCode": 55,
+ "versionName": "9.0",
  "notes": [
-  "Vakanties worden herkend aan betalingen in het buitenland (Meer → Reizen)",
-  "Toekomstplanner: jullie vermogen over 5, 10 en 20 jaar, met 'wat als'-situaties",
-  "Rapport-melding aan het eind van elke periode"
+  "Veiliger synchroniseren: wijzigingen van jullie twee telefoons worden per transactie samengevoegd",
+  "Melding en blok op het homescherm als de bankkoppeling bijna verloopt",
+  "Budgetten voorstellen op basis van wat jullie normaal uitgeven",
+  "Categorieën opruimen: overlappende categorieën samenvoegen",
+  "Rustiger menu: Notities, Rekentools, Samen en 'Kan ik dit betalen?' zijn weg",
+  "Maandelijkse check of het saldo van je spaarrekeningen nog klopt",
+  "Slimmer indelen: Stuiver leert van wat jullie al hebben ingedeeld, plus een knop 'Automatisch indelen'"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=53"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=55"
 }
