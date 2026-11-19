@@ -255,6 +255,11 @@ th{color:var(--muted);font-weight:500}
 .code{font-family:'Space Grotesk',sans-serif;font-size:30px;letter-spacing:6px;text-align:center;padding:10px;background:var(--brand-soft);color:var(--brand);border-radius:14px;margin:8px 0}
 
 /* ===== Design 2.0 ===== */
+.sheet-bg{z-index:40!important;background:rgba(5,6,12,.62)!important;backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px)}
+.sheet{background:#ffffff!important;box-shadow:0 -10px 40px rgba(0,0,0,.25)}
+[data-dark=true] .sheet{background:#141722!important;border:1px solid rgba(255,255,255,.08)}
+.auth{z-index:45}
+
 .where svg.ic,.ring-hero .where svg.ic{width:16px!important;height:16px!important;animation:none!important}
 #forecastCard,#paceCard{display:none!important}
 .side a span .ic,.side a span svg{width:18px;height:18px;color:var(--brand)}
@@ -2590,7 +2595,7 @@ const CNT={};function countUp(){if(window.matchMedia&&matchMedia('(prefers-reduc
 function hideSplash(){const sp=$('splash');if(sp&&!sp.classList.contains('out')){sp.classList.add('out');setTimeout(()=>sp.remove(),400)}}
 setTimeout(hideSplash,2500);
 /* ---------- updates ---------- */
-const APP_VN='10.0';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='10.1';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();

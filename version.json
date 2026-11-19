@@ -1,14 +1,8 @@
 {
- "versionCode": 56,
- "versionName": "10.0",
+ "versionCode": 57,
+ "versionName": "10.1",
  "notes": [
-  "Nieuw ontwerp: één moderne stijl door de hele app, licht en donker",
-  "Eigen kleurenpalet: elke categorie overal dezelfde kleur",
-  "Rustige animaties: de ring, de balkjes en schermwissels",
-  "Strakke iconen in plaats van emoji",
-  "Zwevend menu onderin met een + knop; kies zelf welke vier schermen erin staan (Instellingen)",
-  "Computer: echt dashboard met twee kolommen",
-  "Nieuw app-icoon en opstartscherm"
+  "Vensters (zoals transactie toevoegen) hebben weer een dichte achtergrond en vallen over het menu heen"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=56"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=57"
 }
