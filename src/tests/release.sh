@@ -6,7 +6,7 @@ python3 /tmp/build.py
 python3 /home/claude/tests/smoke.py || { echo 'Release afgebroken: rooktest mislukt'; exit 1; }
 H=$(md5sum stuiver.html|cut -c1-32); if [ -f /tmp/last_release_md5 ] && [ "$(cat /tmp/last_release_md5)" = "$H" ]; then echo 'Release afgebroken: er is niets veranderd'; exit 1; fi
 rm -rf /tmp/out && java -jar /tmp/tools/apktool/apktool.jar b apk -o /tmp/out/unsigned.apk >/dev/null 2>&1
-(cd /tmp/out && java -jar /tmp/tools/signer/*.jar -a unsigned.apk --ks /home/claude/apk-key/stuiver.jks --ksAlias stuiver --ksPass ***VERWIJDERD*** --ksKeyPass ***VERWIJDERD*** -o signed >/tmp/sign.log 2>&1)
+(cd /tmp/out && java -jar /tmp/tools/signer/*.jar -a unsigned.apk --ks /home/claude/apk-key/stuiver.jks --ksAlias stuiver --ksPass "${KS_PASS:-$(cat /home/claude/apk-key/pass.txt)}" --ksKeyPass "${KS_PASS:-$(cat /home/claude/apk-key/pass.txt)}" -o signed >/tmp/sign.log 2>&1)
 cp /tmp/out/signed/*.apk /home/claude/Stuiver.apk
 VC=$(grep -o "versionCode: [0-9]*" apk/apktool.yml | grep -o "[0-9]*")
 VN=$(grep -o "versionName: '[^']*'" apk/apktool.yml | cut -d"'" -f2)
