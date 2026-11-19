@@ -1,14 +1,8 @@
 {
- "versionCode": 59,
- "versionName": "11.0",
+ "versionCode": 60,
+ "versionName": "11.1",
  "notes": [
-  "Elke nacht een back-up, 30 dagen terug te zetten",
-  "Saldocontrole met de bank",
-  "Snel indelen: kaart voor kaart, swipen",
-  "Waarschuwing als een budget te snel opgaat",
-  "Spaardoelen gekoppeld aan je spaarrekeningen",
-  "Dividendbelasting per land, met wat je terugkrijgt",
-  "Tot 5x sneller bij veel transacties"
+  "Tempo-waarschuwing staat nu lager op het overzicht"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=59"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=60"
 }
