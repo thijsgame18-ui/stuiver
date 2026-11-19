@@ -1,8 +1,8 @@
 {
- "versionCode": 60,
- "versionName": "11.1",
+ "versionCode": 61,
+ "versionName": "11.2",
  "notes": [
-  "Tempo-waarschuwing staat nu lager op het overzicht"
+  "Nieuw app-icoon: dunne S"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=60"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=61"
 }

@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
 <meta charset="utf-8">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3ClinearGradient id=%27g%27 x1=%270%27 y1=%270%27 x2=%271%27 y2=%271%27%3E%3Cstop offset=%270%27 stop-color=%27%237c78ff%27/%3E%3Cstop offset=%271%27 stop-color=%27%232fd3a6%27/%3E%3C/linearGradient%3E%3Crect width=%2740%27 height=%2740%27 rx=%2712%27 fill=%27%230b0d14%27/%3E%3Cpath d=%27M26.06 12.73A6.06 6.06 0 1 0 20 20A6.06 6.06 0 1 1 13.94 27.27%27 fill=%27none%27 stroke=%27url(%23g)%27 stroke-width=%274%27 stroke-linecap=%27round%27/%3E%3C/svg%3E">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 40 40%27%3E%3Crect width=%2740%27 height=%2740%27 rx=%2712%27 fill=%27%23111111%27/%3E%3Cpath d=%27M24.24 13.94A4.24 4.24 0 1 0 20 20A4.24 4.24 0 1 1 15.76 26.06%27 fill=%27none%27 stroke=%27%23f4f2ee%27 stroke-width=%272.4%27 stroke-linecap=%27round%27/%3E%3C/svg%3E">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0b0d14">
 <title>Stuiver – jouw geld, jouw ritme</title>
@@ -310,7 +310,7 @@ nav .plus svg{width:26px;height:26px;stroke-width:2.4}
  .sheet{animation:sin .24s cubic-bezier(.2,.8,.2,1) both}@keyframes sin{from{transform:translateY(24px);opacity:.4}to{transform:none;opacity:1}}
 }
 /* opstartscherm */
-#splash{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#0b0d14;transition:opacity .35s}
+#splash{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#111111;transition:opacity .35s}
 #splash.out{opacity:0;pointer-events:none}
 #splash svg{width:92px;height:92px}
 @media(prefers-reduced-motion:no-preference){#splash .arc{stroke-dasharray:100;animation:sdraw 1.4s ease-in-out infinite alternate}@keyframes sdraw{from{stroke-dashoffset:100}to{stroke-dashoffset:0}}}
@@ -354,7 +354,7 @@ nav .plus svg{width:26px;height:26px;stroke-width:2.4}
 </aside>
 <div class="wrap">
   <header>
-    <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c78ff"/><stop offset="1" stop-color="#2fd3a6"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="#0b0d14"/><path d="M26.06 12.73A6.06 6.06 0 1 0 20 20A6.06 6.06 0 1 1 13.94 27.27" fill="none" stroke="url(#lg1)" stroke-width="4" stroke-linecap="round"/></svg>
+    <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#111111"/><path d="M24.24 13.94A4.24 4.24 0 1 0 20 20A4.24 4.24 0 1 1 15.76 26.06" fill="none" stroke="#f4f2ee" stroke-width="2" stroke-linecap="round"/></svg>
     <div><h1>Stuiver</h1><div class="sub" id="periodLbl"></div></div>
     <div class="sync" id="sync"><b></b><span>Laden…</span></div><button class="eye" id="eyeBtn" onclick="togglePriv()" aria-label="Bedragen verbergen">👁</button>
   </header>
@@ -728,9 +728,9 @@ nav .plus svg{width:26px;height:26px;stroke-width:2.4}
   <div class="err" id="lockErr" style="color:var(--bad);font-size:14px;min-height:20px;margin-top:10px;text-align:center"></div>
   <button class="ghost" style="margin-top:8px" onclick="forgotPin()">Pincode vergeten?</button>
 </div>
-<div id="splash" aria-hidden="true"><svg viewBox="0 0 92 92"><defs><linearGradient id="sg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c78ff"/><stop offset="1" stop-color="#2fd3a6"/></linearGradient></defs><path class="arc" pathLength="100" d="M59.94 29.27A13.94 13.94 0 1 0 46 46A13.94 13.94 0 1 1 32.06 62.73" fill="none" stroke="url(#sg)" stroke-width="9" stroke-linecap="round"/></svg></div>
+<div id="splash" aria-hidden="true"><svg viewBox="0 0 92 92"><path class="arc" pathLength="100" d="M55.76 32.06A9.76 9.76 0 1 0 46 46A9.76 9.76 0 1 1 36.24 59.94" fill="none" stroke="#f4f2ee" stroke-width="4.2" stroke-linecap="round"/></svg></div>
 <div class="auth" id="auth"><div class="box">
-  <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><defs><linearGradient id="lg1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c78ff"/><stop offset="1" stop-color="#2fd3a6"/></linearGradient></defs><rect width="40" height="40" rx="12" fill="#0b0d14"/><path d="M26.06 12.73A6.06 6.06 0 1 0 20 20A6.06 6.06 0 1 1 13.94 27.27" fill="none" stroke="url(#lg1)" stroke-width="4" stroke-linecap="round"/></svg>
+  <svg class="logo" viewBox="0 0 40 40" aria-hidden="true"><rect width="40" height="40" rx="12" fill="#111111"/><path d="M24.24 13.94A4.24 4.24 0 1 0 20 20A4.24 4.24 0 1 1 15.76 26.06" fill="none" stroke="#f4f2ee" stroke-width="2" stroke-linecap="round"/></svg>
   <h1>Stuiver</h1><div class="tag">Samen grip op je geld</div>
   <div id="authBody"></div>
 </div></div>
