@@ -1,8 +1,9 @@
 {
- "versionCode": 57,
- "versionName": "10.1",
+ "versionCode": 58,
+ "versionName": "10.2",
  "notes": [
-  "Vensters (zoals transactie toevoegen) hebben weer een dichte achtergrond en vallen over het menu heen"
+  "Nieuw app-icoon: vloeiende S",
+  "Nieuw logo en opstartscherm"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=57"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=58"
 }
