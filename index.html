@@ -801,7 +801,7 @@ function startDay(){if(fixedDay())return fixedDay();const inc=S.settings.incomes
 function salaryMatch(P){const inc=S.settings.incomes||[];const res={};inc.forEach(i=>res[i.id]=[]);if(!inc.length)return res;
   const pays={};inc.forEach(i=>pays[i.id]=payDateFor(i,P));
   const lo=new Date(Math.min(...inc.map(i=>pays[i.id]))-8*864e5),hi=new Date(Math.max(...inc.map(i=>pays[i.id]))+6*864e5);
-  const cand=allTx().filter(t=>t.type==='in'&&t.amount>0&&pd(t.date)>=lo&&pd(t.date)<=hi&&!(!t.whoManual&&t.cat&&/toeslag|kinderbijslag|teruggave|rente|dividend|verkop|terugbetal/i.test((S.cats.find(c=>c.id===t.cat)||{}).name||'')));
+  const cand=allTx().filter(t=>t.type==='in'&&t.amount>0&&!(t.cat&&['spaar','beleg'].includes(catKind(t.cat)))&&pd(t.date)>=lo&&pd(t.date)<=hi&&!(!t.whoManual&&t.cat&&/toeslag|kinderbijslag|teruggave|rente|dividend|verkop|terugbetal/i.test((S.cats.find(c=>c.id===t.cat)||{}).name||'')));
   const used=new Set();
   cand.filter(t=>t.whoManual&&res[t.who]).forEach(t=>{const dd=Math.abs(pd(t.date)-pays[t.who])/864e5;if(dd<=12){res[t.who].push(t);used.add(t.id)}});
   const pairs=[];inc.forEach(i=>{if(res[i.id].length)return;const ref=+i.amount||incomeAvg0(i,P)||0;
@@ -1279,8 +1279,8 @@ function openAsset(id,ptype){const a=S.assets.find(a=>a.id===id)||{type:ptype||'
      <div class="note">Stuiver rekent vanaf deze datum zelf je saldo bij met je transacties. Importeer je een bankbestand met saldo, dan wordt dit vanzelf bijgewerkt.</div></div>
    <div id="spWrap" style="display:${a.type==='spaar'?'':'none'}"><label>Saldo op datum</label><input id="aSDate" type="date" value="${today()}">
      <label>Wat je hierop zet, staat in categorie</label><select id="aCat"><option value="">Geen</option>${S.cats.filter(c=>c.kind==='spaar').map(c=>`<option value="${c.id}" ${a.cat===c.id?'selected':''}>${c.icon} ${esc(c.name)}</option>`).join('')}</select>
-     <label>Of herken aan tekst in de omschrijving</label><input id="aMatch" value="${esc(a.match||'')}" placeholder="bijv. rekeningnummer of naam van de spaarrekening">
-     <div class="note">Stuiver telt vanaf de datum overboekingen naar deze rekening erbij, en geld dat je terugboekt eraf. Pas het saldo af en toe aan met wat je bank zegt.</div></div>
+     <label>Rekeningnummer van deze spaarrekening</label><input id="aMatch" value="${esc(a.match||'')}" placeholder="bijv. B11130519 (staat in de ING-app)">
+     <div class="note">Met het rekeningnummer herkent Stuiver overboekingen naar én van deze rekening vanzelf. Geld dat je erop zet telt erbij, geld dat je ervan haalt telt eraf en geldt niet als inkomen. Pas het saldo af en toe aan met wat je bank zegt.</div></div>
    <div id="invWrap" style="display:${a.type==='beleg'?'':'none'}"><label>Totaal ingelegd</label><input id="aInv" inputmode="decimal" value="${a.invested||''}"><div class="note">Zo zie je je rendement.</div></div>
    ${btns(`saveAsset('${id||''}')`,id?`delAsset('${id}')`:'')}`)}
 function saveAsset(id){const n=val('aName');if(!n)return;const ty=val('aType');const d={type:ty,name:n,amount:num('aAmt'),invested:num('aInv'),updated:ty==='betaal'?(val('aDate')||today()):ty==='spaar'?(val('aSDate')||today()):today()};if(ty==='spaar'){d.cat=val('aCat')||null;d.match=val('aMatch')||''}
@@ -1721,7 +1721,7 @@ async function sbConnect(){
   setSync('','Synchroniseren…');
   try{const hh=await SB.c.from('households').select('id,name,invite_code,created_by,tx_epoch').eq('id',SB.hid).maybeSingle();if(hh.data){SB.hh=hh.data;checkEpoch(hh.data.tx_epoch)}
     const mm=await SB.c.from('members').select('user_id,name').eq('household_id',SB.hid);if(mm.data)SB.members=mm.data;}catch(e){}
-  try{await sbPull(SB.firstPull);SB.firstPull=false;SB.ready=true;setSync('ok','Gesynchroniseerd');ensureCatsV2();ensureImpWipe();ensureHoreca();ensureBelasting();ensureRulesReset();ensurePeriodV1();mergeDupCats();ensureP20()}catch(e){setSync('err','Offline – wordt later verstuurd')}
+  try{await sbPull(SB.firstPull);SB.firstPull=false;SB.ready=true;setSync('ok','Gesynchroniseerd');ensureCatsV2();ensureImpWipe();ensureHoreca();ensureBelasting();ensureRulesReset();ensurePeriodV1();mergeDupCats();ensureInternalV1();ensureP20()}catch(e){setSync('err','Offline – wordt later verstuurd')}
   bankStart();
   if(SB.chan)SB.c.removeChannel(SB.chan);
   SB.chan=SB.c.channel('hh-'+SB.hid).on('postgres_changes',{event:'*',schema:'public',table:'docs',filter:'household_id=eq.'+SB.hid},p=>{
@@ -1819,7 +1819,7 @@ async function doJoinHh(){const name=val('hName'),code=val('hCode');if(!name||!c
   const {data,error}=await SB.c.rpc('join_household',{p_code:code,p_member_name:name});
   if(error){$('aErr').textContent=sbErr(error).message;return}
   wipeLocal();SB.hid=data.id;SB.firstPull=true;hideAuth();await sbConnect();toast('Welkom bij '+(data.name||'het huishouden'))}
-function useLocal(){setTimeout(()=>{ensureCatsV2();ensureHoreca();ensureBelasting();ensureRulesReset();ensurePeriodV1();mergeDupCats();ensureP20()},500);try{localStorage.setItem('stuiver-local','1')}catch(e){}hideAuth();setSync('','Zonder account')}
+function useLocal(){setTimeout(()=>{ensureCatsV2();ensureHoreca();ensureBelasting();ensureRulesReset();ensurePeriodV1();mergeDupCats();ensureInternalV1();ensureP20()},500);try{localStorage.setItem('stuiver-local','1')}catch(e){}hideAuth();setSync('','Zonder account')}
 async function doLogout(){try{if(SB.chan)SB.c.removeChannel(SB.chan);await SB.c.auth.signOut()}catch(e){}
   SB.uid=SB.hid=SB.hh=null;SB.members=[];try{localStorage.removeItem('stuiver-hid');localStorage.removeItem('stuiver-local')}catch(e){}
   wipeLocal();clearLock();vForget();render();showAuth('login')}
@@ -2094,7 +2094,7 @@ async function vUnlock(useRc){const d=VAULT.doc;if(!d)return;const b=$('vBtn');i
   try{let raw;if(useRc){const rc=val('vRc').toUpperCase().replace(/[^A-Z0-9]/g,'');raw=await vUnwrap(d.wr,await vKek(rc,b64d(d.salt),d.iterR||100000))}
     else raw=await vUnwrap(d.wp,await vKek($('vPw').value,b64d(d.salt),d.iter));
     VAULT.key=await vImport(raw);try{localStorage.setItem(vCacheKey(),b64e(raw))}catch(e){}
-    $('auth').classList.remove('on');toast('Ontgrendeld');await sbPull();ensureCatsV2();ensureImpWipe();ensureHoreca();ensureBelasting();ensureRulesReset();ensurePeriodV1();mergeDupCats();ensureP20();flush();
+    $('auth').classList.remove('on');toast('Ontgrendeld');await sbPull();ensureCatsV2();ensureImpWipe();ensureHoreca();ensureBelasting();ensureRulesReset();ensurePeriodV1();mergeDupCats();ensureInternalV1();ensureP20();flush();
     if(useRc)setTimeout(()=>openVaultPw(true),400)}
   catch(e){if(b){b.disabled=false;b.textContent='Openen'}$('aErr').textContent=useRc?'Deze herstelcode klopt niet.':'Dit kluiswachtwoord klopt niet.'}}
 function vaultSettings(){let h=`<h3 style="margin-top:22px">Versleuteling</h3>`;
@@ -2161,6 +2161,7 @@ async function processBankTx(){if(!SB.hid)return;
       if(t.type==='in'){t.who=guessWho(t.date,t.amount);t.cat=guessInCat(desc)}
       else{let g=guessCat(desc);if(!g&&r.note)g=guessCat(r.note);
         if(g.startsWith('f:'))t.fixedId=g.slice(2);else if(g.startsWith('c:'))t.cat=g.slice(2);else{t.cat=fallback;t.review=true}}
+      classifyInternal(t);
       const m=r.date.slice(0,7);(TX[m]=TX[m]||[]).push(t);keys.add('tx-'+m);n++})}
   // saldo bijwerken
   try{const {data:ac}=await SB.c.from('bank_accounts').select('uid,name,balance,balance_date').eq('household_id',SB.hid);
@@ -2239,7 +2240,8 @@ function openReview(){const r=reviewList();if(!r.length){closeSheet();toast('All
   openSheet(`<h3>Nog indelen</h3><div class="note" style="margin-top:0">Kies een categorie. Stuiver onthoudt dit voor dezelfde winkel of naam.</div>${r.slice(0,40).map(t=>`<div class="item" style="display:block"><div style="display:flex;justify-content:space-between;gap:8px"><div class="grow"><div class="t">${esc(t.desc)}</div><div class="s">${dShort(pd(t.date))}${t.note?' · '+esc(t.note.slice(0,60)):''}</div></div><div class="amt">−${fmt(t.amount).replace('−','')}</div></div>
     <select style="margin-top:6px;padding:8px 10px;font-size:14px" onchange="setReviewCat('${t.id}',this.value)">${catOptions(t.cat&&!t.review?'c:'+t.cat:'')}</select></div>`).join('')}
     <div class="actions"><button class="ghost" onclick="closeSheet()">Klaar</button></div>`)}
-function setReviewCat(id,v){if(!v)return;const f=findTx(id);if(!f)return;const n=normName(f.t.desc),ty=f.t.type;S.rules=S.rules||{};if(n)S.rules[ty==='in'?'in:'+n:n]=ty==='in'?v.slice(2):v;const keys=new Set(['main']);
+function setReviewCat(id,v){if(!v)return;const f=findTx(id);if(!f)return;
+  if(v.startsWith('c:')&&catKind(v.slice(2))==='spaar'){const a=S.assets.find(a=>a.type==='spaar'&&a.cat===v.slice(2));const nr=((f.t.desc||'')+' '+(f.t.note||'')).match(/\b[A-Z]\d{8}\b/);if(a&&!a.match&&nr){a.match=nr[0];markMain()}}const n=normName(f.t.desc),ty=f.t.type;S.rules=S.rules||{};if(n)S.rules[ty==='in'?'in:'+n:n]=ty==='in'?v.slice(2):v;const keys=new Set(['main']);
   const apply=t=>{delete t.review;if(v.startsWith('f:')){t.fixedId=v.slice(2);t.cat=null}else t.cat=v.slice(2)};
   for(const m in TX)TX[m].forEach(t=>{if(t.id===id||(isPending(t)&&t.type===ty&&normName(t.desc)===n)){apply(t);keys.add('tx-'+m)}});
   mark(...keys);setTimeout(()=>{if($('sheetBg').classList.contains('open'))openReview()},50)}
@@ -2352,6 +2354,15 @@ function mergeDupCats(){if(VAULT.on&&!VAULT.key)return;if(!S.catsV2)return;const
     (S.bo&&typeof S.bo==='object')&&Object.values(S.bo).forEach(o=>{if(o&&o[c.id]!=null&&o[keep.id]==null){o[keep.id]=o[c.id]}});
     S.cats=S.cats.filter(x=>x!==c);n++});
   if(n){mark('main',...ks);toast(n+' dubbele categorie'+(n>1?'ën':'')+' samengevoegd')}}
+function spaarMatch(t){const txt=((t.desc||'')+' '+(t.note||'')).toLowerCase(),flat=txt.replace(/\s/g,'');
+  for(const a of S.assets.filter(a=>a.type==='spaar')){if(a.match&&a.match.replace(/\s/g,'').length>=3&&flat.includes(a.match.toLowerCase().replace(/\s/g,'')))return{asset:a}}
+  for(const a of S.assets.filter(a=>a.type==='spaar')){if(a.name&&a.name.length>=4&&txt.includes(a.name.toLowerCase()))return{asset:a}}
+  if(/spaarrek|oranje spaar|spaardeposito|naar spaar|van spaar|bonusrente/.test(txt))return{unknown:true};return null}
+function classifyInternal(t){const m=spaarMatch(t);if(!m)return false;const k=t.cat&&catKind(t.cat);
+  if(m.asset&&m.asset.cat){if(t.cat===m.asset.cat&&!t.review)return false;t.cat=m.asset.cat;delete t.review;delete t.fixedId;if(t.type==='in'){t.who=null;delete t.whoManual}return true}
+  if(k==='spaar'||k==='beleg')return false;if(!t.review){t.review=true;return true}return false}
+function ensureInternalV1(){if(S.internalV1)return;if(VAULT.on&&!VAULT.key)return;if(!S.catsV2)return;const ks=new Set();
+  for(const m in TX)TX[m].forEach(t=>{if(classifyInternal(t))ks.add('tx-'+m)});S.internalV1=true;mark('main',...ks);if(ks.size)render()}
 function ensureCatsV2(){if(S.catsV2)return;if(VAULT.on&&!VAULT.key)return;let n=0;
   ['in','uit','spaar','beleg'].forEach(k=>CAT_PRESETS[k].forEach(([nm,ic])=>{if(k==='beleg'&&nm==='DEGIRO')return;if(!catExists(nm,k)){S.cats.push({id:uid(),name:nm,icon:ic,budget:0,kind:k});n++}}));
   OWN_CATS.forEach(([k,nm,ic])=>{if(!S.cats.some(c=>c.name.toLowerCase()===nm.toLowerCase())){S.cats.push({id:uid(),name:nm,icon:ic,budget:0,kind:k});n++}});
@@ -2419,7 +2430,7 @@ function renderFreq(){const el=$('freqCard');if(!el)return;const L=freqData(),R=
 function openFreq(i){const x=(window._FQL||[])[i];if(!x)return;const txs=x.txs.slice().sort((a,b)=>b.date.localeCompare(a.date));
   openSheet(`<h3>${esc(x.name)}</h3><div class="kv"><span>${x.n}× ${freqRange().label}</span><span class="amt">${fmt(x.v)}</span></div><div class="s" style="margin:4px 0 8px">Gemiddeld ${fmt(x.v/x.n)} per keer. Tik op een betaling om de categorie te wijzigen.</div>${txs.map(t=>txRow(t)).join('')}<div class="actions"><button class="ghost" onclick="closeSheet()">Sluiten</button></div>`)}
 /* ---------- updates ---------- */
-const APP_VN='8.2';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='8.3';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
