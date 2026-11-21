@@ -1,8 +1,9 @@
 {
- "versionCode": 61,
- "versionName": "11.2",
+ "versionCode": 62,
+ "versionName": "11.3",
  "notes": [
-  "Nieuw app-icoon: dunne S"
+  "Live koersen: actuele waarde van je beleggingen",
+  "Dagresultaat per positie en totaal"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=61"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=62"
 }

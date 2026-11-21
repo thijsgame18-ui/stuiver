@@ -42,6 +42,10 @@ async def main():
                return{rc,sw,done,und,gs,ga,pace:Array.isArray(paceData()),tnl:T.nl,tfo:T.fo,tback:T.back,html:html.includes('Zwitserland')}}""")
             check('saldocontrole',abs(r2['rc']+25)<0.01,r2);check('snel indelen',r2['sw'] and r2['done'] and r2['und'],r2);check('spaardoel gekoppeld',abs(r2['gs']-r2['ga'])<0.01,r2)
             check('budgettempo',r2['pace'],r2);check('dividendbelasting',abs(r2['tnl']-15)<.01 and abs(r2['tfo']-30)<.01 and abs(r2['tback']-20)<.01 and r2['html'],r2)
+            r3=await pg.evaluate("""()=>{S.degiro=Object.assign(dgDefault(),{pos:[{p:'ASML',isin:'NL0010273215',q:2,price:900,v:1800},{p:'Coca-Cola',isin:'US1912161007',q:10,price:80,v:800}],cash:50,val:2650,dep:2000,wd:0,div:[]});
+               LQ={at:Date.now(),q:{NL0010273215:{sym:'ASML.AS',cur:'EUR',price:1000,prev:990,eur:1000,eurPrev:990,time:Date.now()},US1912161007:{sym:'KO',cur:'USD',price:110,prev:100,eur:100,eurPrev:90,time:Date.now()}}};
+               const L=liveCalc();go('beleggingen');renderDegiro();const h=$('dgCard').innerHTML;openSym('NL0010273215');const sh=!!$('symIn');closeSheet();return{val:L.val,day:L.day,live:h.includes('Live'),sh}}""")
+            check('live koersen',abs(r3['val']-3050)<0.01 and abs(r3['day']-120)<0.01 and r3['live'] and r3['sh'],r3)
             await pg.evaluate("checkUpdate(true)");await pg.wait_for_timeout(400)
             check('update-melding','9.9' in (await pg.evaluate("$('updateBanner').innerText")),'')
             check(f'JS-fouten (donker={dark})',not errs,errs[:3])

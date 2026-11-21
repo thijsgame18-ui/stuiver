@@ -2617,7 +2617,7 @@ function renderTxList(){
 }
 
 /* ---------- beleggingen ---------- */
-function renderInvest(){renderDegiro();const inv=S.assets.filter(a=>a.type==='beleg');const val=inv.reduce((a,x)=>a+x.amount,0),ins=inv.reduce((a,x)=>a+(+x.invested||0),0),r=val-ins;
+function renderInvest(){renderDegiro();setTimeout(()=>refreshQuotes(),0);liveTick();const inv=S.assets.filter(a=>a.type==='beleg');const val=inv.reduce((a,x)=>a+x.amount,0),ins=inv.reduce((a,x)=>a+(+x.invested||0),0),r=val-ins;
   const y=String(new Date().getFullYear());const yIn=allTx().filter(t=>t.date.startsWith(y)&&t.type==='out').reduce((a,t)=>a+catAmounts(t).filter(x=>catKind(x.cat)==='beleg').reduce((b,x)=>b+(+x.amount||0),0),0);
   $('bgKpi').innerHTML=`<div class="kpi"><div class="s">Waarde</div><div class="v">${fmt0(val)}</div></div><div class="kpi"><div class="s">Ingelegd</div><div class="v">${fmt0(ins)}</div></div>
     <div class="kpi"><div class="s">Rendement</div><div class="v ${r<0?'neg':'pos'}">${r>=0?'+':'−'}${fmt0(Math.abs(r)).replace('−','')}</div><div class="d">${ins?(r>=0?'+':'')+nf2.format(r/ins*100)+'%':''}</div></div>
@@ -2677,7 +2677,7 @@ const CNT={};function countUp(){if(window.matchMedia&&matchMedia('(prefers-reduc
 function hideSplash(){const sp=$('splash');if(sp&&!sp.classList.contains('out')){sp.classList.add('out');setTimeout(()=>sp.remove(),400)}}
 setTimeout(hideSplash,2500);
 /* ---------- updates ---------- */
-const APP_VN='11.2';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
+const APP_VN='11.3';const UPD_URL='https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/version.json';let UPD=null,updLast=0,updBusy=false;
 function myVC(){try{return window.Android&&Android.versionCode?Android.versionCode():0}catch(e){return 0}}
 async function checkUpdate(force){const vc=myVC();if(!vc)return;if(!force&&Date.now()-updLast<30*60e3)return;updLast=Date.now();
   try{const r=await fetch(UPD_URL+'?t='+Date.now(),{cache:'no-store'});if(!r.ok)return;const j=await r.json();
@@ -2696,7 +2696,7 @@ function renderUpdate(st,pct){const el=$('updateBanner');if(!el)return;if(!UPD){
     <div class="btnrow" style="margin:12px 0 0"><button class="btn" ${busy?'disabled':''} onclick="doUpdate()">${busy?'Bezig…':'Nu bijwerken'}</button></div></div>`}
 function doUpdate(){if(!UPD||!UPD.apk)return;try{Android.installUpdate(UPD.apk)}catch(e){location.href=UPD.apk}}
 window.onUpdateStatus=(st,pct)=>{renderUpdate(st,pct)};
-setTimeout(()=>checkUpdate(),4000);
+setTimeout(()=>checkUpdate(),4000);setTimeout(()=>{if(Date.now()-LQ.at>30*60e3)refreshQuotes()},6000);
 /* ---------- DeGiro ---------- */
 function dgNum(v){if(v==null||v==='')return NaN;if(typeof v==='number')return v;let s=String(v).trim().replace(/[€\s]/g,'');if(!s)return NaN;
   if(/^-?[\d.]+,\d+$/.test(s))s=s.replace(/\./g,'').replace(',','.');else if(/^-?[\d,]+\.\d+$/.test(s))s=s.replace(/,/g,'');else if(/^-?\d+,\d+$/.test(s))s=s.replace(',','.');
@@ -2859,11 +2859,35 @@ function dgDividendHTML(G){const div=(G.div||[]).slice().sort((a,b)=>a.d.localeC
    <h3 style="margin-top:18px">Per aandeel</h3>${perHtml}`}
 
 let DGR='all';function setDGR(v){DGR=v;renderDegiro()}
+/* ---------- live koersen ---------- */
+let LQ={at:0,q:{}};try{LQ=JSON.parse(localStorage.getItem('stuiver-quotes'))||LQ}catch(e){}
+let LQ_BUSY=false,LQ_ERR='',LQ_T=null,LQ_TRY=0;
+function dgPositions(){const G=S.degiro||{};return(G.pos&&G.pos.length?G.pos:Object.entries(G.cost||{}).filter(([k,e])=>e.q>0).map(([k,e])=>({p:e.n,isin:k,q:e.q,price:e.last||0,v:e.c,est:1})))}
+function liveCalc(){const G=S.degiro||{},P=dgPositions();if(!P.length||!LQ.at)return null;let val=0,prev=0,hit=0,miss=[];
+  P.forEach(x=>{const k=(x.isin||'').toUpperCase(),q=LQ.q[k];if(q&&q.eur>0){val+=x.q*q.eur;prev+=x.q*(q.eurPrev||q.eur);hit++}else{miss.push(x.p);val+=x.v||0;prev+=x.v||0}});
+  if(!hit)return null;const cash=G.pos&&G.pos.length?(G.cash||0):(G.acash||0);val+=cash;prev+=cash;
+  const last=Math.max(...Object.values(LQ.q).filter(q=>q.time).map(q=>q.time));return{val,day:val-prev,dayPct:prev?(val-prev)/prev*100:0,hit,miss,at:LQ.at,last,cash}}
+async function refreshQuotes(force){const G=S.degiro;if(!G||!SB.c||LQ_BUSY)return;const P=dgPositions();if(!P.length)return;
+  if(!force&&(Date.now()-LQ.at<60e3||Date.now()-LQ_TRY<60e3))return;LQ_TRY=Date.now();LQ_BUSY=true;LQ_ERR='';
+  try{const sym=G.sym||{};const items=P.map(x=>({isin:(x.isin||'').toUpperCase(),name:x.p,sym:sym[(x.isin||'').toUpperCase()]||undefined}));
+    const {data,error}=await SB.c.functions.invoke('quotes',{body:{items}});if(error||!data||!data.ok)throw new Error((data&&data.error)||(error&&error.message)||'mislukt');
+    const q={};Object.entries(data.quotes||{}).forEach(([k,v])=>{if(v&&!v.error)q[k]=v});LQ={at:data.at||Date.now(),q,err:Object.entries(data.quotes||{}).filter(([k,v])=>v&&v.error).map(([k])=>k)};
+    try{localStorage.setItem('stuiver-quotes',JSON.stringify(LQ))}catch(e){}
+    const L=liveCalc();if(L){const a=S.assets.find(a=>a.src==='degiro');if(a&&Math.abs((a.amount||0)-L.val)>=1){a.amount=Math.round(L.val*100)/100;a.updated=today();a.live=1;markMain()}}
+  }catch(e){LQ_ERR=String(e.message||e)}finally{LQ_BUSY=false}
+  if(view==='beleggingen')renderInvest();else if(view==='home'||view==='vermogen')render()}
+function liveTick(){clearInterval(LQ_T);LQ_T=setInterval(()=>{if(document.visibilityState==='visible'&&view==='beleggingen')refreshQuotes()},60e3)}
+function openSym(isin){const G=S.degiro,x=dgPositions().find(p=>(p.isin||'').toUpperCase()===isin),q=LQ.q[isin];
+  openSheet(`<h3>${esc(x?x.p:isin)}</h3><p class="s">ISIN ${esc(isin)}${q?` · nu gekoppeld aan <b>${esc(q.sym)}</b> (${esc(q.exch||'')}, ${esc(q.cur)})`:' · geen koers gevonden'}</p>
+  <label>Yahoo Finance-symbool</label><input id="symIn" placeholder="bijv. ASML.AS of VWRL.AS" value="${esc(((G.sym||{})[isin])||'')}" autocapitalize="characters">
+  <div class="note">Laat leeg om Stuiver zelf te laten zoeken. Klopt de koers niet, zoek het symbool op finance.yahoo.com en vul het hier in.</div>
+  <div class="actions"><button class="ghost" onclick="closeSheet()">Annuleren</button><button class="btn" onclick="saveSym('${isin}')">Opslaan</button></div>`)}
+function saveSym(isin){const G=S.degiro;G.sym=G.sym||{};const v=val('symIn').trim().toUpperCase();if(v)G.sym[isin]=v;else delete G.sym[isin];markMain();closeSheet();refreshQuotes(true)}
 function renderDegiro(){const el=$('dgCard');if(!el)return;const G=S.degiro;
   if(!G||(!G.val&&!(G.div||[]).length)){el.innerHTML=`<h3>📈 DeGiro</h3><p class="s">Lees je DeGiro-exports in. Dan zie je hier je portefeuille, wat je hebt verdiend en vooral je dividend.</p><div class="btnrow" style="margin:8px 0 0"><button class="btn" onclick="dgImport()">Bestanden inlezen</button><button class="outline" onclick="dgHelp()">Hoe werkt dit?</button></div>`;return}
   const y=String(new Date().getFullYear()),cut=ymd(new Date(Date.now()-365*864e5));const div=G.div||[];
   const dTot=div.reduce((a,e)=>a+e.eur,0),dY=div.filter(e=>e.d.startsWith(y)).reduce((a,e)=>a+e.eur,0),d12=div.filter(e=>e.d>=cut).reduce((a,e)=>a+e.eur,0),tax=div.reduce((a,e)=>a+(e.geur-e.eur),0);
-  const ins=(G.dep||0)-(G.wd||0),r=G.val&&ins&&!G.est?G.val-ins:null;const realT=Object.values(G.cost||{}).reduce((a,e)=>a+(e.real||0),0);
+  const ins=(G.dep||0)-(G.wd||0);const realT=Object.values(G.cost||{}).reduce((a,e)=>a+(e.real||0),0);
   const M=['jan','feb','mrt','apr','mei','jun','jul','aug','sep','okt','nov','dec'];
   const years=[...new Set(div.map(e=>e.d.slice(0,4)))].sort();if(DGR!=='all'&&DGR!=='12m'&&!years.includes(DGR))DGR='all';
   let cols=[];if(DGR==='all'){cols=years.map(yy=>({lbl:yy,t:yy,v:div.filter(e=>e.d.startsWith(yy)).reduce((a,e)=>a+e.eur,0)}))}
@@ -2876,15 +2900,21 @@ function renderDegiro(){const el=$('dgCard');if(!el)return;const G=S.degiro;
    <div class="kv" style="margin-top:8px"><span>${DGR==='all'?'Totaal sinds '+(div[0]?dShort(pd(div[0].d))+' '+div[0].d.slice(0,4):'begin'):DGR==='12m'?'Laatste 12 maanden':'In '+DGR}</span><span class="amt in">${fmt(selTot)}</span></div>`;
   const per={};sel.forEach(e=>{const k=e.isin||e.p;(per[k]=per[k]||{p:e.p,v:0,n:0,last:''});per[k].v+=e.eur;per[k].n++;if(e.d>per[k].last)per[k].last=e.d});
   const perL=Object.values(per).sort((a,b)=>b.v-a.v);
-  const pos=(G.pos&&G.pos.length?G.pos:Object.entries(G.cost||{}).filter(([k,e])=>e.q>0).map(([k,e])=>({p:e.n,isin:k,q:e.q,price:e.last||0,v:e.c,est:1}))).slice().sort((a,b)=>b.v-a.v);
+  const L=liveCalc();
+  const pos=dgPositions().map(x=>{const q=LQ.q[(x.isin||'').toUpperCase()];return q&&q.eur>0?{...x,live:q,price:q.price,v:x.q*q.eur,dv:x.q*(q.eur-(q.eurPrev||q.eur))}:x}).sort((a,b)=>b.v-a.v);
+  const VAL=L?L.val:(G.val||0),EST=G.est&&!L,r=VAL&&ins&&!EST?VAL-ins:null;
   el.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center"><h3>📈 DeGiro</h3><span class="s">${G.upd?'bijgewerkt '+dShort(pd(G.upd)):''}</span></div>
+   ${L?`<div class="card" style="margin:8px 0;padding:14px 16px"><div style="display:flex;justify-content:space-between;align-items:center"><span class="s"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${Date.now()-L.last<20*60e3?'var(--good)':'var(--muted)'};margin-right:6px"></span>${Date.now()-L.last<20*60e3?'Live':'Slotkoers'} · ${new Date(L.last).toLocaleString('nl-NL',{weekday:'short',hour:'2-digit',minute:'2-digit'})}</span><button class="ghost" style="padding:4px 10px;min-height:0" onclick="refreshQuotes(true)">${LQ_BUSY?'…':'↻'}</button></div>
+     <div style="font-size:30px;font-weight:700;margin-top:4px" class="amt">${fmt(L.val)}</div>
+     <div class="${L.day<0?'neg':'pos'}" style="font-weight:600">${L.day>=0?'▲ +':'▼ −'}${fmt(Math.abs(L.day)).replace('−','')} (${(L.day>=0?'+':'')+nf2.format(L.dayPct)}%) vandaag</div>
+     ${L.miss.length?`<div class="s" style="margin-top:6px">Geen koers voor: ${L.miss.map(esc).join(', ')}. Tik op de positie om het symbool in te stellen.</div>`:''}</div>`:LQ_ERR?`<div class="note">Koersen ophalen lukte niet: ${esc(LQ_ERR)}</div>`:''}
    <div class="kpis" style="margin-top:6px">
-    <div class="kpi"><div class="s">Portefeuille${G.est?' (aankoopwaarde)':''}</div><div class="v">${fmt0(G.val||0)}</div>${G.cash?`<div class="d">waarvan cash ${fmt0(G.cash)}</div>`:''}</div>
+    <div class="kpi"><div class="s">Portefeuille${EST?' (aankoopwaarde)':L?' (live)':''}</div><div class="v">${fmt0(VAL)}</div>${(L?L.cash:G.cash)?`<div class="d">waarvan cash ${fmt0(L?L.cash:G.cash)}</div>`:''}</div>
     <div class="kpi"><div class="s">Netto ingelegd</div><div class="v">${ins?fmt0(ins):'–'}</div>${G.fees?`<div class="d">kosten ${fmt0(G.fees)}</div>`:''}</div>
-    ${G.est?`<div class="kpi"><div class="s">Gerealiseerd</div><div class="v ${realT<0?'neg':'pos'}">${realT>=0?'+':'−'}${fmt0(Math.abs(realT)).replace('−','')}</div><div class="d">winst op verkopen</div></div>`:`<div class="kpi"><div class="s">Rendement</div>${r!=null?`<div class="v ${r<0?'neg':'pos'}">${r>=0?'+':'−'}${fmt0(Math.abs(r)).replace('−','')}</div><div class="d">${(r>=0?'+':'')+nf2.format(r/ins*100)}%</div>`:'<div class="v">–</div>'}</div>`}</div>
-   ${G.est&&Object.keys(G.cost||{}).length?'<div class="note">De koerswaarde van vandaag staat niet in het rekeningoverzicht of de transacties. Stuiver rekent daarom met wat je betaald hebt. Lees ook de Portefeuille-export in voor de actuele waarde en je rendement.</div>':''}
+    ${EST?`<div class="kpi"><div class="s">Gerealiseerd</div><div class="v ${realT<0?'neg':'pos'}">${realT>=0?'+':'−'}${fmt0(Math.abs(realT)).replace('−','')}</div><div class="d">winst op verkopen</div></div>`:`<div class="kpi"><div class="s">Rendement</div>${r!=null?`<div class="v ${r<0?'neg':'pos'}">${r>=0?'+':'−'}${fmt0(Math.abs(r)).replace('−','')}</div><div class="d">${(r>=0?'+':'')+nf2.format(r/ins*100)}%</div>`:'<div class="v">–</div>'}</div>`}</div>
+   ${EST&&Object.keys(G.cost||{}).length?'<div class="note">De koerswaarde van vandaag staat niet in het rekeningoverzicht of de transacties. Stuiver rekent daarom met wat je betaald hebt. Lees ook de Portefeuille-export in voor de actuele waarde en je rendement.</div>':''}
    ${dgDividendHTML(G)}
-   ${pos.length?`<h3 style="margin-top:16px">Posities</h3>${pos.map(x=>{const c=(G.cost||{})[x.isin];const pl=c&&c.c&&!x.est?x.v-c.c:null;return `<div class="item"><div class="grow"><div class="t">${esc(x.p)}</div><div class="s">${nf2.format(x.q).replace(/,00$/,'')} stuks · ${x.est?'laatste koop/verkoop '+nf2.format(x.price):'koers '+nf2.format(x.price)}${c&&c.c&&!x.est?' · betaald '+fmt0(c.c):''}${c&&c.real?` · gerealiseerd ${c.real>=0?'+':'−'}${fmt0(Math.abs(c.real)).replace('−','')}`:''}</div></div><div style="text-align:right"><div class="amt">${fmt0(x.v)}</div>${pl!=null?`<div class="s ${pl<0?'neg':'pos'}">${pl>=0?'+':'−'}${fmt0(Math.abs(pl)).replace('−','')} (${(pl>=0?'+':'')+nf2.format(pl/c.c*100)}%)</div>`:''}</div></div>`}).join('')}`:''}
+   ${pos.length?`<h3 style="margin-top:16px">Posities</h3>${pos.map(x=>{const c=(G.cost||{})[x.isin];const pl=c&&c.c&&(!x.est||x.live)?x.v-c.c:null;const lq=x.live,dp=lq&&lq.prev?(lq.price-lq.prev)/lq.prev*100:null;return `<div class="item tap" onclick="openSym('${esc((x.isin||'').toUpperCase())}')"><div class="grow"><div class="t">${esc(x.p)}</div><div class="s">${nf2.format(x.q).replace(/,00$/,'')} stuks · ${lq?`koers ${nf2.format(x.price)} ${lq.cur!=='EUR'?lq.cur:''}${dp!=null?` <span class="${dp<0?'neg':'pos'}">${dp>=0?'+':''}${nf2.format(dp)}%</span>`:''}`:x.est?'laatste koop/verkoop '+nf2.format(x.price):'koers '+nf2.format(x.price)}${c&&c.c&&!x.est?' · betaald '+fmt0(c.c):''}${c&&c.real?` · gerealiseerd ${c.real>=0?'+':'−'}${fmt0(Math.abs(c.real)).replace('−','')}`:''}</div></div><div style="text-align:right"><div class="amt">${fmt0(x.v)}</div>${pl!=null?`<div class="s ${pl<0?'neg':'pos'}">${pl>=0?'+':'−'}${fmt0(Math.abs(pl)).replace('−','')} (${(pl>=0?'+':'')+nf2.format(pl/c.c*100)}%)</div>`:''}</div></div>`}).join('')}`:''}
    <div class="btnrow" style="margin:12px 0 0"><button class="btn" onclick="dgImport()">Nieuwe bestanden inlezen</button><button class="outline" onclick="dgHelp()">Hoe werkt dit?</button></div>`}
 
 function openInvest(id){const a=S.assets.find(x=>x.id===id);openSheet(`<h3>Inleg toevoegen: ${esc(a.name)}</h3><label>Bedrag dat je hebt ingelegd</label><input id="ivA" inputmode="decimal">
