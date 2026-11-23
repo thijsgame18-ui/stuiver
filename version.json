@@ -1,8 +1,8 @@
 {
- "versionCode": 63,
- "versionName": "11.4",
+ "versionCode": 64,
+ "versionName": "11.5",
  "notes": [
-  "Periode start weer bij het eerste salaris (de 23e)"
+  "Periode loopt vast van de 23e t/m de 22e"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=63"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=64"
 }
