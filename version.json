@@ -1,8 +1,8 @@
 {
- "versionCode": 64,
- "versionName": "11.5",
+ "versionCode": 65,
+ "versionName": "11.6",
  "notes": [
-  "Periode loopt vast van de 23e t/m de 22e"
+  "Nieuw: rapport afgelopen periode, met een knop op het overzicht"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=64"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=65"
 }

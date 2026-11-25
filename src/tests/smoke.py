@@ -46,6 +46,8 @@ async def main():
                LQ={at:Date.now(),q:{NL0010273215:{sym:'ASML.AS',cur:'EUR',price:1000,prev:990,eur:1000,eurPrev:990,time:Date.now()},US1912161007:{sym:'KO',cur:'USD',price:110,prev:100,eur:100,eurPrev:90,time:Date.now()}}};
                const L=liveCalc();go('beleggingen');renderDegiro();const h=$('dgCard').innerHTML;openSym('NL0010273215');const sh=!!$('symIn');closeSheet();return{val:L.val,day:L.day,live:h.includes('Live'),sh}}""")
             check('live koersen',abs(r3['val']-3050)<0.01 and abs(r3['day']-120)<0.01 and r3['live'] and r3['sh'],r3)
+            r4=await pg.evaluate("""()=>{rOff=-1;rFrom='home';go('rapport');renderReport();const h=$('reportBody').innerHTML;renderReportBanner();return{sum:h.includes('Samenvatting'),where:h.includes('Waar het geld heen ging'),btn:$('reportBanner').innerHTML.includes('Rapport afgelopen periode')}}""")
+            check('rapport',r4['sum'] and r4['where'] and r4['btn'],r4)
             await pg.evaluate("checkUpdate(true)");await pg.wait_for_timeout(400)
             check('update-melding','9.9' in (await pg.evaluate("$('updateBanner').innerText")),'')
             check(f'JS-fouten (donker={dark})',not errs,errs[:3])
