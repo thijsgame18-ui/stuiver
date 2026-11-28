@@ -1,8 +1,8 @@
 {
- "versionCode": 66,
- "versionName": "11.7",
+ "versionCode": 67,
+ "versionName": "11.8",
  "notes": [
-  "Twee mini-rondjes: uitgegeven en gespaard"
+  "Twee mini-taartdiagrammen: uitgegeven en gespaard per categorie"
  ],
- "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=66"
+ "apk": "https://raw.githubusercontent.com/thijsgame18-ui/stuiver/main/Stuiver.apk?v=67"
 }
